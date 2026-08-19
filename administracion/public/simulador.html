@@ -1,0 +1,2769 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador LÃ³gico de Rack y Cableado Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --rack-bg: #0b0f19;
+            --rack-frame: #1e293b;
+            --u-height: 52px; 
+            /* Se ampliÃ³ el ancho para acomodar los organizadores laterales */
+            --rack-width: 960px; 
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* ESTILOS DE LA BARRA SUPERIOR */
+        header {
+            background-color: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .tools-bar {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            background: #0f172a;
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.5rem;
+            border: 1px solid #334155;
+        }
+
+        .btn-tool {
+            background: #334155;
+            border: 1px solid #475569;
+            color: #f8fafc;
+            padding: 0.4rem 0.85rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .btn-tool:hover {
+            background: #475569;
+            border-color: #64748b;
+        }
+        
+        .btn-tool.active {
+            background: #059669;
+            border-color: #10b981;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .route-selector {
+            display: flex;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            margin-left: 0.5rem;
+        }
+
+        .btn-route {
+            background: transparent;
+            color: #64748b;
+            border: none;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-route:hover {
+            color: #94a3b8;
+            background: #1e293b;
+        }
+
+        .btn-route.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .color-picker {
+            width: 28px;
+            height: 28px;
+            border: 2px solid #475569;
+            border-radius: 50%;
+            cursor: pointer;
+            padding: 0;
+            background: none;
+            overflow: hidden;
+        }
+
+        /* MAIN CONTAINER & SIDEBAR */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 280px;
+            background-color: #1e293b;
+            border-right: 1px solid #334155;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.25rem;
+        }
+
+        .draggable-item {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            padding: 0.6rem 0.75rem;
+            border-radius: 0.5rem;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s ease;
+        }
+        
+        .draggable-item:hover {
+            border-color: #38bdf8;
+            background-color: #1a2638;
+            transform: translateX(3px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .draggable-item:active { cursor: grabbing; }
+
+        .device-badge {
+            width: 32px;
+            height: 26px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 900;
+            font-family: 'JetBrains Mono', monospace;
+            box-shadow: inset 0 1px 2px rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        /* WORKSPACE & RACK CANVAS */
+        .workspace {
+            flex: 1;
+            background-color: #090d16;
+            background-image: 
+                radial-gradient(#1e293b 1px, transparent 1px),
+                radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 24px 24px;
+            background-position: 0 0, 12px 12px;
+            padding: 2.5rem;
+            overflow: auto;
+            display: flex;
+            gap: 3rem;
+            align-items: flex-start;
+            position: relative;
+        }
+
+        .rack-container {
+            width: var(--rack-width);
+            background-color: var(--rack-bg);
+            border: 14px solid #1e293b;
+            border-radius: 6px;
+            /* Se ajustÃ³ el padding para dar espacio a los rieles y organizadores */
+            padding: 12px 75px; 
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), inset 0 0 60px rgba(0,0,0,0.9);
+            border-top-width: 30px;
+            border-bottom-width: 30px;
+            flex-shrink: 0;
+        }
+
+        /* EIA-310 METAL RAILS (Ahora mÃ¡s hacia el centro) */
+        .rack-container::before,
+        .rack-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 38px;
+            background: linear-gradient(90deg, #475569 0%, #cbd5e1 35%, #64748b 70%, #1e293b 100%);
+            border-left: 1px solid #64748b;
+            border-right: 1px solid #0f172a;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 15px,
+                #090d16 15px,
+                #090d16 22px,
+                transparent 22px,
+                transparent 33px,
+                #090d16 33px,
+                #090d16 40px,
+                transparent 40px,
+                transparent 52px
+            );
+            z-index: 2;
+        }
+
+        /* Rieles EIA-310 (ajustados para dejar espacio a los ductos) */
+        .rack-container::before { left: 45px; }
+        .rack-container::after { right: 45px; }
+
+        /* ==================================================== */
+        /* NUEVOS ORGANIZADORES VERTICALES (LATERALES)          */
+        /* ==================================================== */
+        
+        .vertical-organizer {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 45px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            z-index: 1; /* Debajo de los cables pero encima del fondo */
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+        }
+        
+        .vertical-organizer.left { left: 0; border-radius: 4px 0 0 4px; border-right: none; }
+        .vertical-organizer.right { right: 0; border-radius: 0 4px 4px 0; border-left: none; }
+
+        .vert-finger-slots {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            height: 100%;
+            align-items: center;
+            justify-content: space-evenly;
+            padding: 8px 0;
+            background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        .vert-finger {
+            width: 80%;
+            height: 6px;
+            background: #020617;
+            border-radius: 2px;
+            border-top: 1px solid #334155;
+            border-bottom: 1px solid #334155;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.9);
+        }
+
+        .vert-cover {
+            position: absolute;
+            inset: 2px 3px;
+            background: linear-gradient(90deg, #334155 0%, #1e293b 100%);
+            border: 1px solid #475569;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.9), inset 0 1px 1px rgba(255,255,255,0.2);
+            transition: opacity 0.3s ease;
+            z-index: 15;
+            cursor: pointer;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            color: #94a3b8;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .vert-cover:hover {
+            background: linear-gradient(90deg, #475569 0%, #334155 100%);
+        }
+
+        .vert-cover.open {
+            opacity: 0.15;
+        }
+
+        .rack-header-label {
+            position: absolute;
+            top: -24px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-weight: 900;
+            color: #64748b;
+            letter-spacing: 3px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .rack-slots {
+            display: flex;
+            flex-direction: column-reverse;
+            position: relative;
+            z-index: 3;
+        }
+
+        .rack-slot {
+            height: var(--u-height);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.15s;
+            box-sizing: border-box;
+            border-top: 1px dashed rgba(255, 255, 255, 0.06);
+        }
+
+        .rack-slot.drag-over {
+            background-color: rgba(16, 185, 129, 0.15);
+            border: 1px solid #10b981;
+        }
+
+        .slot-number {
+            position: absolute;
+            left: -22px; /* Ajustado por el nuevo ancho */
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            z-index: 5;
+            background: #1e293b;
+            padding: 2px 4px;
+            border-radius: 3px;
+            border: 1px solid #334155;
+        }
+        .slot-number.right { left: auto; right: -22px; }
+
+        /* DEVICE INSTANCE & MOUNT EARS */
+        .device-instance {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-sizing: border-box;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            border-radius: 2px;
+            padding: 0 8px;
+        }
+
+        .rack-ear {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 26px;
+            background: linear-gradient(90deg, #475569, #334155);
+            border: 1px solid #1e293b;
+            z-index: 11;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            padding: 4px 0;
+        }
+        .rack-ear.left { left: -26px; border-right: none; border-radius: 3px 0 0 3px; }
+        .rack-ear.right { right: -26px; border-left: none; border-radius: 0 3px 3px 0; }
+
+        .screw {
+            width: 7px;
+            height: 7px;
+            background: radial-gradient(circle at 30% 30%, #f1f5f9, #64748b);
+            border-radius: 50%;
+            border: 1px solid #1e293b;
+            box-shadow: inset 1px 1px 2px rgba(255,255,255,0.8), 1px 1px 2px rgba(0,0,0,0.8);
+            position: relative;
+        }
+        .screw::after {
+            content: ''; position: absolute; top: 3px; left: 1px; width: 5px; height: 1px; background: #1e293b; transform: rotate(45deg);
+        }
+
+        /* DOBLE HILERA DE PUERTOS EN GRID */
+        .port-group-double {
+            display: grid;
+            grid-template-rows: repeat(2, 1fr);
+            grid-auto-flow: column;
+            gap: 2px 4px;
+            background: #090d16;
+            padding: 4px 6px;
+            border-radius: 3px;
+            border: 1px solid #1e293b;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.9);
+            align-items: center;
+        }
+
+        /* HILERA ÃšNICA DE PUERTOS (PATCH PANEL / SINGLE ROW) */
+        .port-group-single-row {
+            display: flex;
+            gap: 3px;
+            background: #050811;
+            padding: 3px 5px;
+            border-radius: 2px;
+            border: 1px solid #1e293b;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
+            align-items: center;
+        }
+
+        .patch-port-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+        }
+
+        .patch-label-box {
+            width: 14px;
+            height: 7px;
+            background: #ffffff;
+            border: 1px solid #94a3b8;
+            border-radius: 1px;
+            box-shadow: inset 0 1px 1px rgba(0,0,0,0.2);
+        }
+
+        .patch-port-num {
+            font-size: 7px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            color: #cbd5e1;
+            line-height: 1;
+            margin-top: 1px;
+        }
+
+        .port-interactive {
+            position: relative;
+            cursor: crosshair;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        
+        .port-interactive:hover {
+            transform: scale(1.25);
+            z-index: 30;
+        }
+        
+        .port-interactive.selected-for-cable {
+            box-shadow: 0 0 0 2px #38bdf8, 0 0 10px #38bdf8 !important;
+            border-color: #0284c7 !important;
+            transform: scale(1.2);
+            z-index: 30;
+        }
+
+        /* CONECTOR RJ45 REALISTA CON MUESCA Y PINES */
+        .port-rj45 {
+            width: 15px;
+            height: 13px;
+            background: linear-gradient(180deg, #1e293b 0%, #020617 100%);
+            border: 1px solid #475569;
+            border-radius: 2px;
+            position: relative;
+            box-shadow: inset 0 2px 3px rgba(0,0,0,0.9);
+        }
+        .port-rj45::before {
+            content: ''; position: absolute; top: 0; left: 3px; right: 3px; height: 3px; background: #090d16; border-radius: 0 0 1px 1px;
+        }
+        .port-rj45::after {
+            content: ''; position: absolute; bottom: 1px; left: 2px; right: 2px; height: 3px;
+            background-image: repeating-linear-gradient(90deg, #f59e0b, #f59e0b 1px, transparent 1px, transparent 2px);
+            opacity: 0.85;
+        }
+
+        /* PUERTO SFP / SFP+ */
+        .port-sfp {
+            width: 17px;
+            height: 13px;
+            background: #020617;
+            border: 1.5px solid #94a3b8;
+            border-radius: 1px;
+            position: relative;
+            box-shadow: inset 0 0 4px rgba(0,0,0,0.9);
+        }
+
+        /* LEDS REALISTAS: ACT / POE */
+        .port-led-container {
+            position: absolute;
+            top: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 2px;
+            z-index: 5;
+        }
+
+        .port-led {
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+        }
+
+        .led-act {
+            background-color: #10b981;
+            box-shadow: 0 0 4px #10b981;
+            animation: actFlicker 0.3s infinite alternate;
+        }
+
+        .led-poe {
+            background-color: #f59e0b;
+            box-shadow: 0 0 4px #f59e0b;
+        }
+
+        @keyframes actFlicker {
+            0% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.1); }
+            100% { opacity: 0.4; transform: scale(0.9); }
+        }
+
+        /* 1. ROUTER RUIJIE / REYEE RG-EG209GS */
+        .device-ruijie-router {
+            background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 40%, #64748b 100%);
+            border-top: 1px solid #f1f5f9;
+            border-bottom: 2px solid #334155;
+            position: relative;
+        }
+        .device-ruijie-router::after {
+            content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 6px; background: #ef4444; border-radius: 0 2px 2px 0;
+        }
+
+        .ruijie-yellow-box {
+            border: 1.5px solid #eab308;
+            background: #090d16;
+            padding: 2px 4px;
+            border-radius: 2px;
+            display: flex;
+            gap: 4px;
+        }
+
+        /* 2. SWITCH CATALYST / TP-LINK 24P (DOBLE HILERA) */
+        .device-switch-24 {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border-top: 1px solid #475569;
+            border-bottom: 2px solid #020617;
+        }
+
+        /* 3. PATCH PANEL 24P DE 1 HILERA */
+        .device-patch-panel {
+            background: linear-gradient(180deg, #111827 0%, #030712 100%);
+            border: 1px solid #374151;
+            box-shadow: inset 0 1px 2px rgba(255,255,255,0.1);
+        }
+
+        /* 4. FIREWALL FORTINET / UTM */
+        .device-firewall {
+            background: linear-gradient(180deg, #dc2626 0%, #991b1b 100%);
+            border-top: 1px solid #fca5a5;
+            border-bottom: 2px solid #450a0a;
+        }
+
+        /* 5. SERVIDOR 1U/2U */
+        .device-server {
+            background: linear-gradient(180deg, #475569 0%, #1e293b 100%);
+            border: 1px solid #64748b;
+        }
+        .hdd-bay {
+            width: 22px;
+            height: 32px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 2px;
+            position: relative;
+        }
+        .hdd-bay::after {
+            content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
+            width: 8px; height: 2px; background: #10b981; box-shadow: 0 0 4px #10b981;
+        }
+
+        /* 6. LIU DE FIBRA Ã“PTICA 1U */
+        .device-fiber-liu {
+            background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+            border: 1px solid #334155;
+            position: relative;
+        }
+        .liu-shelf-tray {
+            position: absolute;
+            bottom: -3px;
+            left: 20px;
+            right: 20px;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 0 0 3px 3px;
+            border: 1px solid #475569;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.8);
+            z-index: 12;
+        }
+        .port-fiber-lc {
+            width: 13px;
+            height: 12px;
+            background: #06b6d4; /* Aqua OM3/OM4 */
+            border: 1px solid #0891b2;
+            border-radius: 2px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.6), 0 0 5px rgba(6, 182, 212, 0.4);
+            position: relative;
+        }
+        .port-fiber-lc::before {
+            content: ''; position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px;
+            background: #020617; border-radius: 1px;
+        }
+
+        /* 7. ORGANIZADOR TIPO DUCTO (HORIZONTAL) */
+        .device-duct-organizer {
+            background: #0f172a;
+            border: 1px solid #334155;
+            position: relative;
+        }
+
+        /* 8. ONT GPON / MÃ“DEM ISP */
+        .device-ont-isp {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border-top: 2px solid #10b981;
+            border-bottom: 2px solid #065f46;
+            position: relative;
+        }
+
+        .port-gpon {
+            width: 14px;
+            height: 12px;
+            background: #15803d; /* Verde SC/APC */
+            border: 1px solid #22c55e;
+            border-radius: 2px;
+            position: relative;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.8), 0 0 6px rgba(34, 197, 94, 0.5);
+        }
+        .port-gpon::before {
+            content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px;
+            background: #020617; border-radius: 1px;
+        }
+
+        /* 9. NVR VIDEOVIGILANCIA CCTV */
+        .device-nvr {
+            background: linear-gradient(180deg, #1a102f 0%, #0b0719 100%);
+            border-top: 1px solid #a855f7;
+            border-bottom: 2px solid #4c1d95;
+            position: relative;
+        }
+
+        .duct-finger-slots {
+            display: flex;
+            gap: 4px;
+            height: 100%;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 12px;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        }
+        .duct-finger {
+            width: 8px;
+            height: 80%;
+            background: #020617;
+            border-radius: 2px;
+            border-left: 1px solid #334155;
+            border-right: 1px solid #334155;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.9);
+        }
+        .duct-cover {
+            position: absolute;
+            inset: 3px 24px;
+            background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+            border: 1px solid #475569;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.7), inset 0 1px 1px rgba(255,255,255,0.2);
+            transition: opacity 0.3s ease;
+            z-index: 15;
+            cursor: pointer;
+        }
+        .duct-cover.open {
+            opacity: 0.15;
+        }
+
+        /* CAPA DE CABLES SVG */
+        #cables-layer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .delete-btn {
+            background: #ef4444; color: white; border: none; border-radius: 50%; width: 22px; height: 22px;
+            font-size: 11px; font-weight: bold; line-height: 22px; text-align: center; cursor: pointer;
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            z-index: 40; opacity: 0; transition: opacity 0.2s; pointer-events: auto;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+        }
+        .device-instance:hover .delete-btn { opacity: 1; }
+        
+        .delete-rack-btn {
+            position: absolute; top: -26px; right: 0; background: #ef4444; color: white;
+            border: none; border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight:bold; cursor: pointer;
+            z-index: 20;
+        }
+        .delete-rack-btn:hover { background: #dc2626; }
+
+        /* â”€â”€ CONSTRUCTOR DE EQUIPOS PERSONALIZADOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        .builder-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 200;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .builder-overlay.hidden { display: none; }
+
+        .builder-modal {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            width: 920px;
+            max-width: 98vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+
+        .builder-header {
+            background: #1e293b;
+            padding: 1rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            flex-shrink: 0;
+        }
+
+        .builder-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .builder-form {
+            width: 420px;
+            flex-shrink: 0;
+            padding: 1.25rem;
+            overflow-y: auto;
+            border-right: 1px solid #1e293b;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .builder-preview-panel {
+            flex: 1;
+            background: #090d16;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 20px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            gap: 1rem;
+            overflow: auto;
+        }
+
+        .builder-preview-label {
+            font-size: 10px;
+            font-weight: 800;
+            color: #64748b;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .builder-preview-rack {
+            width: 560px;
+            background: #0b0f19;
+            border: 12px solid #1e293b;
+            border-radius: 4px;
+            padding: 4px 60px;
+            position: relative;
+        }
+        .builder-preview-rack::before, .builder-preview-rack::after {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0;
+            width: 30px;
+            background: linear-gradient(90deg,#475569 0%,#cbd5e1 35%,#64748b 70%,#1e293b 100%);
+            background-image: repeating-linear-gradient(to bottom,transparent,transparent 15px,#090d16 15px,#090d16 22px,transparent 22px,transparent 33px,#090d16 33px,#090d16 40px,transparent 40px,transparent 52px);
+            z-index: 2;
+        }
+        .builder-preview-rack::before { left: 30px; }
+        .builder-preview-rack::after  { right: 30px; }
+
+        .builder-section-title {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .builder-field { display: flex; flex-direction: column; gap: 0.3rem; }
+        .builder-field label { font-size: 0.7rem; color: #94a3b8; font-weight: 600; }
+        .builder-field input,
+        .builder-field select {
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #f8fafc;
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .builder-field input:focus,
+        .builder-field select:focus { border-color: #3b82f6; }
+
+        .builder-field-row { display: flex; gap: 0.75rem; }
+        .builder-field-row .builder-field { flex: 1; }
+
+        .port-group-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+        }
+
+        .port-group-card .remove-group-btn {
+            position: absolute;
+            top: 6px; right: 8px;
+            background: #ef4444;
+            border: none;
+            border-radius: 50%;
+            width: 18px; height: 18px;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            line-height: 18px;
+            text-align: center;
+        }
+
+        .add-group-btn {
+            background: #1e3a5f;
+            border: 1px dashed #3b82f6;
+            color: #60a5fa;
+            padding: 0.5rem;
+            border-radius: 6px;
+            width: 100%;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .add-group-btn:hover { background: #1e40af; border-style: solid; }
+
+        .builder-save-btn {
+            background: linear-gradient(135deg, #059669, #10b981);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            padding: 0.65rem 1.5rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .builder-save-btn:hover { filter: brightness(1.15); }
+
+        .custom-sidebar-section {
+            border-top: 1px solid #334155;
+            padding-top: 1rem;
+        }
+
+        .custom-device-item {
+            position: relative;
+        }
+        .custom-device-item .delete-custom-btn {
+            position: absolute;
+            top: 50%; right: 6px;
+            transform: translateY(-50%);
+            background: #ef4444;
+            border: none;
+            border-radius: 50%;
+            width: 18px; height: 18px;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            line-height: 18px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .custom-device-item:hover .delete-custom-btn { opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 p-2 rounded-lg text-white shadow-lg shadow-blue-500/30">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
+            </div>
+            <div>
+                <h1 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                    Rack & Cable Simulator Pro
+                    <span class="bg-blue-900/60 text-blue-400 text-xs px-2 py-0.5 rounded border border-blue-700/50">v3.0 C/Org. Verticales</span>
+                </h1>
+                <p class="text-xs text-slate-400">DiseÃ±o real de rack estructurado, organizadores laterales y parcheo</p>
+            </div>
+        </div>
+
+        <div class="tools-bar">
+            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider mr-1">Herramientas:</span>
+            
+            <button id="btn-cable" class="btn-tool" onclick="toggleCableMode()">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                Conectar Cable
+            </button>
+
+            <div class="flex items-center gap-2 border-l border-slate-700 pl-3">
+                <span class="text-xs text-slate-400 font-medium">Ruta:</span>
+                <div class="route-selector">
+                    <button class="btn-route" id="route-left" onclick="setCableRoute('left')" title="Enrutar por organizador Izquierdo">Izq</button>
+                    <button class="btn-route active" id="route-direct" onclick="setCableRoute('direct')" title="Enrutar Directo / Horizontal">Dir</button>
+                    <button class="btn-route" id="route-right" onclick="setCableRoute('right')" title="Enrutar por organizador Derecho">Der</button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 border-l border-slate-700 pl-3">
+                <span class="text-xs text-slate-400 font-medium">Color:</span>
+                <input type="color" id="cable-color" class="color-picker" value="#38bdf8">
+            </div>
+            
+            <button class="btn-tool bg-rose-950/50 hover:bg-rose-900 text-rose-300 border-rose-800 ml-2" onclick="clearCables()">
+                Limpiar Cables
+            </button>
+
+            <button class="btn-tool bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600" onclick="exportSummary()">
+                Resumen BOM
+            </button>
+            <button class="btn-tool bg-emerald-700 hover:bg-emerald-600 text-emerald-100 border-emerald-500" onclick="saveSimulator()">
+                ðŸ’¾ Guardar
+            </button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        
+        <!-- SIDEBAR DE EQUIPOS Y CATALOGO -->
+        <aside class="sidebar">
+            <div>
+                <h3>Gabinete Rack</h3>
+                <div class="draggable-item" draggable="true" data-type="rack" ondragstart="dragStart(event)">
+                    <div class="device-badge bg-slate-800 text-slate-200 border border-slate-600">42U</div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-200">Gabinete Rack 42U</div>
+                        <div class="text-[10px] text-slate-400">Incluye org. verticales</div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3>Routers & Gateways</h3>
+                <div class="draggable-item mb-2" draggable="true" data-type="ruijie-router" ondragstart="dragStart(event)">
+                    <div class="device-badge bg-slate-300 text-slate-900 border border-slate-400">RG</div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-200">Ruijie RG-EG209GS</div>
+                        <div class="text-[10px] text-amber-400 font-mono">9p (8 RJ45 + SFP)</div>
+                    </div>
+                </div>
+                
+                <div class="draggable-item mb-2" draggable="true" data-type="firewall" ondragstart="dragStart(event)">
+                    <div class="device-badge bg-red-700 text-white">FW</div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-200">Firewall FortiGate UTM</div>
+                        <div class="text-[10px] text-slate-400">8p RJ45 + 2p SFP</div>
+                    </div>
+                </div>
+
+                <div class="draggable-item" draggable="true" data-type="ont-isp" ondragstart="dragStart(event)">
+                    <div class="device-badge bg-emerald-950 text-emerald-400 border border-emerald-600">ONT</div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-200">ONT GPON / MÃ³dem ISP</div>
+                        <div class="text-[10px] text-emerald-400 font-mono">1p Fibra + 4p RJ45</div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3>Switches & Parcheo</h3>
+                <div class="draggable-item mb-2" draggable="true" data-type="switch-24" ondragstart="dragStart(event)">
+                    <div class="device-badge bg-sky-900 text-sky-200 border border-sky-700">24P</div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-200">Switch 24 Puertos</div>
+                        <div class="text-[10px] text-sky-400 font-mono">24p RJ45 + 4p SFP+</div>
+                    </div>
+                </div>
+
+                <div class="draggable-item mb-2" draggable="true" data-type="switch-48" ondragstart="dragStart(event)">
+                    <div class="device-badge bg-indigo-900 text-indigo-200 border border-indigo-700">48P</div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-200">Switch 48P PoE+</div>
+                        <div class="text-[10px] text-indigo-400 font-mono">48p RJ45 PoE + 4p SFP+</div>
+                    </div>
+                </div>
+
+                <div class="draggable-item mb-2" draggable="true" data-type="patch-panel" ondragstart="dragStart(event)">
+                    <div class="device-badge bg-amber-900 text-amber-200 border border-amber-700">24P</div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-200">Patch Panel 24P</div>
+                        <div class="text-[10px] text-amber-400 font-mono">Cat 6 / 1 Hilera</div>
+                    </div>
+                </div>
+
+                <div class="draggable-item" draggable="true" data-type="fiber-liu" ondragstart="dragStart(event)">
+                    <div class="device-badge bg-cyan-950 text-cyan-400 border border-cyan-700">LIU</div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-200">LIU Fibra Ã“ptica 1U</div>
+                        <div class="text-[10px] text-cyan-400 font-mono">24P LC Duplex OM3</div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3>Organizadores Horizontales</h3>
+                <div class="draggable-item mb-2" draggable="true" data-type="duct-organizer" ondragstart="dragStart(event)">
+                    <div class="device-badge bg-slate-800 text-amber-400 border border-amber-800/50">ORG</div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-200">Organizador Tipo Ducto</div>
+                        <div class="text-[10px] text-amber-400 font-mono">1U con Tapa Ciega</div>
+                    </div>
+                </div>
+
+                <div class="draggable-item" draggable="true" data-type="organizer" ondragstart="dragStart(event)">
+                    <div class="device-badge bg-slate-800 text-slate-400 border border-slate-700">CEP</div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-200">Organizador Cepillo</div>
+                        <div class="text-[10px] text-slate-400 font-mono">Pass-through 1U</div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3>Servidores & Videovigilancia</h3>
+                <div class="draggable-item mb-2" draggable="true" data-type="server" ondragstart="dragStart(event)">
+                    <div class="device-badge bg-slate-600 text-white">SRV</div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-200">Servidor Enterprise 1U</div>
+                        <div class="text-[10px] text-slate-400">4 Bays HDD + Dual ETH</div>
+                    </div>
+                </div>
+
+                <div class="draggable-item" draggable="true" data-type="nvr" ondragstart="dragStart(event)">
+                    <div class="device-badge bg-purple-950 text-purple-300 border border-purple-600">NVR</div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-200">NVR IP 16Ch PoE (1U)</div>
+                        <div class="text-[10px] text-purple-300 font-mono">16p PoE CÃ¡maras</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- â”€â”€ EQUIPOS PERSONALIZADOS â”€â”€ -->
+            <div class="custom-sidebar-section" id="custom-devices-sidebar">
+                <h3>ðŸ› ï¸ Mis Equipos</h3>
+                <div id="custom-devices-list" style="display:flex;flex-direction:column;gap:0.5rem;">
+                    <div class="text-[10px] text-slate-500 text-center py-2">Cargando catÃ¡logo...</div>
+                </div>
+                <button onclick="openBuilder()" class="add-group-btn mt-2" style="margin-top:0.75rem;">
+                    âž• Crear Nuevo Equipo
+                </button>
+            </div>
+            
+            <div class="mt-auto pt-3 border-t border-slate-700">
+                <button onclick="clearWorkspace()" class="w-full bg-slate-800 hover:bg-red-900/50 text-slate-300 hover:text-red-300 py-2 px-3 rounded text-xs font-bold transition-colors border border-slate-700">
+                    Limpiar Escenario
+                </button>
+            </div>
+        </aside>
+
+        <!-- â”€â”€ MODAL: CONSTRUCTOR DE EQUIPOS â”€â”€ -->
+        <div class="builder-overlay hidden" id="builder-overlay">
+            <div class="builder-modal">
+                <div class="builder-header">
+                    <div>
+                        <div class="text-sm font-bold text-slate-100">ðŸ› ï¸ Constructor de Equipo</div>
+                        <div class="text-xs text-slate-400">DiseÃ±a tu propio equipo de red personalizado</div>
+                    </div>
+                    <button onclick="closeBuilder()" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+                </div>
+
+                <div class="builder-body">
+                    <!-- FORMULARIO -->
+                    <div class="builder-form">
+                        <div>
+                            <div class="builder-section-title">InformaciÃ³n General</div>
+                            <div style="display:flex;flex-direction:column;gap:0.6rem;margin-top:0.6rem;">
+                                <div class="builder-field">
+                                    <label>Nombre del equipo *</label>
+                                    <input type="text" id="bld-nombre" placeholder="ej: Switch Cisco Nexus 24p" oninput="updatePreview()">
+                                </div>
+                                <div class="builder-field-row">
+                                    <div class="builder-field">
+                                        <label>Tipo</label>
+                                        <select id="bld-tipo" onchange="updatePreview()">
+                                            <option value="switch">Switch</option>
+                                            <option value="router">Router</option>
+                                            <option value="firewall">Firewall</option>
+                                            <option value="server">Servidor</option>
+                                            <option value="ont">ONT/MÃ³dem ISP</option>
+                                            <option value="nvr">NVR CCTV</option>
+                                            <option value="ups">UPS</option>
+                                            <option value="otro">Otro</option>
+                                        </select>
+                                    </div>
+                                    <div class="builder-field">
+                                        <label>Altura</label>
+                                        <select id="bld-units" onchange="updatePreview()">
+                                            <option value="1">1U</option>
+                                            <option value="2">2U</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="builder-field-row">
+                                    <div class="builder-field">
+                                        <label>Color del chasis</label>
+                                        <input type="color" id="bld-chassis-color" value="#1e293b" oninput="updatePreview()" style="height:36px;padding:2px 4px;">
+                                    </div>
+                                    <div class="builder-field">
+                                        <label>Marca / Etiqueta</label>
+                                        <input type="text" id="bld-label" placeholder="ej: CISCO" maxlength="20" oninput="updatePreview()">
+                                    </div>
+                                    <div class="builder-field">
+                                        <label>Color etiqueta</label>
+                                        <input type="color" id="bld-label-color" value="#f8fafc" oninput="updatePreview()" style="height:36px;padding:2px 4px;">
+                                    </div>
+                                </div>
+                                <div class="builder-field-row">
+                                    <div class="builder-field">
+                                        <label>AlineaciÃ³n de puertos</label>
+                                        <select id="bld-port-side" onchange="updatePreview()">
+                                            <option value="right">Derecha</option>
+                                            <option value="center">Centro</option>
+                                            <option value="left">Izquierda</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="builder-section-title">Grupos de Puertos</div>
+                            <div id="port-groups-container" style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.6rem;"></div>
+                            <button class="add-group-btn" onclick="addPortGroup()" style="margin-top:0.5rem;">
+                                ï¼‹ Agregar Grupo de Puertos
+                            </button>
+                        </div>
+
+                        <button class="builder-save-btn" id="builder-save-btn" onclick="saveCustomDevice()">
+                            ðŸ’¾ Guardar en CatÃ¡logo
+                        </button>
+                    </div>
+
+                    <!-- PREVIEW EN TIEMPO REAL -->
+                    <div class="builder-preview-panel">
+                        <div class="builder-preview-label">Vista Previa</div>
+                        <div class="builder-preview-rack" id="builder-preview-rack">
+                            <div id="builder-preview-device" style="position:relative;z-index:3;"></div>
+                        </div>
+                        <div class="text-[10px] text-slate-600" id="builder-preview-info">Completa el formulario para ver la vista previa</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AREA DE TRABAJO (WORKSPACE) -->
+        <main class="workspace" id="workspace" ondragover="allowDropWorkspace(event)" ondrop="dropToWorkspace(event)">
+            <svg id="cables-layer"></svg>
+
+            <div class="w-full text-center text-slate-500 my-auto pointer-events-none" id="empty-workspace-msg">
+                <div class="inline-flex p-4 rounded-full bg-slate-800/50 mb-3 text-slate-400">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                </div>
+                <h2 class="text-xl font-bold text-slate-300 mb-1">Simulador de Rack VacÃ­o</h2>
+                <p class="text-xs text-slate-400 mb-1">1. Arrastra un <b>Gabinete Rack 42U</b> al workspace.</p>
+                <p class="text-xs text-slate-400 mb-1">2. Los <b>organizadores laterales</b> ya vienen integrados en el gabinete.</p>
+                <p class="text-xs text-slate-400 mb-1">3. Arrastra los equipos sobre las unidades (U) del rack.</p>
+                <p class="text-xs text-slate-400">4. Activa <b>"Conectar Cable"</b> para parchear los puertos.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL RESUMEN BOM -->
+    <div id="bom-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full p-6 shadow-2xl">
+            <h3 class="text-lg font-bold text-slate-100 mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Resumen de Equipamiento (BOM)
+            </h3>
+            <div id="bom-content" class="text-xs text-slate-300 space-y-2 max-h-80 overflow-y-auto mb-4 font-mono bg-slate-950 p-3 rounded border border-slate-800">
+                <!-- Se llena dinÃ¡micamente -->
+            </div>
+            <button onclick="closeBOM()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded text-xs">Cerrar</button>
+        </div>
+    </div>
+
+    <script>
+        // ESTADO GLOBAL
+        let rackCounter = 0;
+        let deviceCounter = 0;
+        let portCounter = 0;
+
+        let isCableMode = false;
+        let selectedPortForCable = null;
+        let cables = []; // { id, port1, port2, color, route }
+        let currentCableRoute = 'direct'; // 'left', 'direct', 'right'
+
+        const workspace = document.getElementById('workspace');
+        const svgLayer = document.getElementById('cables-layer');
+
+        function setCableRoute(route) {
+            currentCableRoute = route;
+            document.getElementById('route-left').classList.remove('active');
+            document.getElementById('route-direct').classList.remove('active');
+            document.getElementById('route-right').classList.remove('active');
+            document.getElementById(`route-${route}`).classList.add('active');
+        }
+
+        // Escuchar scroll y resize para recalcular lÃ­neas Bezier de cables
+        workspace.addEventListener('scroll', drawAllCables);
+        window.addEventListener('resize', drawAllCables);
+
+        // --- DRAG & DROP FUNCTIONS ---
+
+        function dragStart(event) {
+            event.dataTransfer.setData("itemType", event.target.getAttribute('data-type'));
+            event.dataTransfer.effectAllowed = "copy";
+        }
+
+        function allowDropWorkspace(event) {
+            event.preventDefault();
+        }
+
+        function dropToWorkspace(event) {
+            event.preventDefault();
+            const itemType = event.dataTransfer.getData("itemType");
+
+            if (itemType === "rack") {
+                createRack();
+            }
+        }
+
+        // --- CREACIÃ“N DE RACK ---
+
+        function createRack() {
+            rackCounter++;
+            
+            const msg = document.getElementById('empty-workspace-msg');
+            if (msg) msg.style.display = 'none';
+
+            const rackEl = document.createElement('div');
+            rackEl.className = 'rack-container';
+            rackEl.id = `rack-${rackCounter}`;
+
+            const titleEl = document.createElement('div');
+            titleEl.className = 'rack-header-label';
+            titleEl.innerText = `RACK PRINCIPAL (42U) C/DUCTOS LATERALES - #${rackCounter}`;
+            rackEl.appendChild(titleEl);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-rack-btn';
+            deleteBtn.innerText = 'âœ• Eliminar Rack';
+            deleteBtn.onclick = function() {
+                removeCablesForRack(rackEl);
+                rackEl.remove();
+                checkWorkspaceEmpty();
+                drawAllCables();
+            };
+            rackEl.appendChild(deleteBtn);
+
+            // AÃ‘ADIR ORGANIZADORES VERTICALES AL RACK
+            addVerticalOrganizers(rackEl);
+
+            const slotsContainer = document.createElement('div');
+            slotsContainer.className = 'rack-slots';
+
+            // 42 Unidades numeradas de abajo hacia arriba (1 a 42)
+            for (let i = 1; i <= 42; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'rack-slot';
+                slot.id = `${rackEl.id}-u${i}`;
+
+                const numLeft = document.createElement('span');
+                numLeft.className = 'slot-number';
+                numLeft.innerText = (i < 10 ? '0' : '') + i;
+                
+                const numRight = document.createElement('span');
+                numRight.className = 'slot-number right';
+                numRight.innerText = (i < 10 ? '0' : '') + i;
+
+                slot.appendChild(numLeft);
+                slot.appendChild(numRight);
+
+                slot.ondragover = allowDropSlot;
+                slot.ondragenter = function() { if (!this.querySelector('.device-instance')) this.classList.add('drag-over'); };
+                slot.ondragleave = function() { this.classList.remove('drag-over'); };
+                slot.ondrop = dropToSlot;
+
+                slotsContainer.appendChild(slot);
+            }
+
+            rackEl.appendChild(slotsContainer);
+            workspace.appendChild(rackEl);
+        }
+
+        // FUNCIÃ“N PARA CREAR LOS ORGANIZADORES VERTICALES
+        function addVerticalOrganizers(rackElement) {
+            const sides = ['left', 'right'];
+            
+            sides.forEach(side => {
+                const orgEl = document.createElement('div');
+                orgEl.className = `vertical-organizer ${side}`;
+                
+                // Contenedor de ranuras (dedos)
+                const slotsEl = document.createElement('div');
+                slotsEl.className = 'vert-finger-slots';
+                
+                // Agregamos mÃºltiples "dedos" para simular el ducto a lo largo de las 42U
+                // Calculamos aprox 120 ranuras para llenarlo visualmente
+                for(let i=0; i<120; i++) {
+                    const finger = document.createElement('div');
+                    finger.className = 'vert-finger';
+                    slotsEl.appendChild(finger);
+                }
+                
+                // Tapa removible interactiva
+                const cover = document.createElement('div');
+                cover.className = 'vert-cover';
+                cover.innerHTML = 'ORGANIZADOR VERTICAL CABLE MGT.';
+                cover.title = "Clic para abrir/cerrar tapa";
+                cover.onclick = function(e) {
+                    e.stopPropagation();
+                    this.classList.toggle('open');
+                    drawAllCables(); // Por si los cables cambian de visibilidad
+                };
+
+                orgEl.appendChild(slotsEl);
+                orgEl.appendChild(cover);
+                
+                rackElement.appendChild(orgEl);
+            });
+        }
+
+        function allowDropSlot(event) {
+            if (!this.querySelector('.device-instance')) {
+                event.preventDefault();
+            }
+        }
+
+        function dropToSlot(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.classList.remove('drag-over');
+
+            const itemType = event.dataTransfer.getData("itemType");
+            if (!itemType || itemType === "rack" || this.querySelector('.device-instance')) return;
+
+            if (itemType.startsWith('custom:')) {
+                const customId = itemType.replace('custom:', '');
+                const cfg = (window._customDeviceCatalog || {})[customId];
+                if (!cfg) { console.warn('Equipo custom no encontrado:', customId); return; }
+                createCustomDeviceInSlot(this, cfg);
+            } else {
+                createDeviceInSlot(this, itemType);
+            }
+            drawAllCables();
+        }
+
+        // --- CONSTRUCTOR DE DISPOSITIVOS ---
+
+        function createDeviceInSlot(slotElement, type) {
+            deviceCounter++;
+            
+            const deviceEl = document.createElement('div');
+            deviceEl.id = `device-${deviceCounter}`;
+            deviceEl.dataset.deviceType = type;
+
+            // Orejas laterales de rack (Tornillos)
+            if (type !== 'organizer') {
+                const earL = document.createElement('div'); earL.className = 'rack-ear left';
+                earL.innerHTML = '<div class="screw"></div><div class="screw"></div>';
+                const earR = document.createElement('div'); earR.className = 'rack-ear right';
+                earR.innerHTML = '<div class="screw"></div><div class="screw"></div>';
+                deviceEl.appendChild(earL);
+                deviceEl.appendChild(earR);
+            }
+
+            // A) RUIJIE RG-EG209GS
+            if (type === 'ruijie-router') {
+                deviceEl.className = 'device-instance device-ruijie-router';
+                
+                const brandBox = document.createElement('div');
+                brandBox.className = 'flex flex-col justify-center pl-2';
+                brandBox.innerHTML = `
+                    <div class="text-[10px] font-black text-slate-900 leading-none">Ruijie | <span class="text-rose-700">Reyee</span></div>
+                    <div class="text-[8px] font-mono text-slate-700 font-bold">RG-EG209GS</div>
+                `;
+                deviceEl.appendChild(brandBox);
+
+                const portsWrapper = document.createElement('div');
+                portsWrapper.className = 'flex items-center gap-3 ml-auto pr-4';
+
+                const ge1_7Group = createDoubleRowPortGroup([
+                    { name: 'GE1', type: 'rj45' }, { name: 'GE3', type: 'rj45' }, { name: 'GE5', type: 'rj45' }, { name: 'GE7', type: 'rj45' },
+                    { name: 'GE2', type: 'rj45' }, { name: 'GE4', type: 'rj45' }, { name: 'GE6', type: 'rj45' }, { name: 'GE8 (WAN)', type: 'rj45' }
+                ]);
+                portsWrapper.appendChild(ge1_7Group);
+
+                const yellowBox = document.createElement('div');
+                yellowBox.className = 'ruijie-yellow-box';
+                
+                const sfpGroup = document.createElement('div');
+                sfpGroup.className = 'flex gap-1.5 items-center';
+                sfpGroup.appendChild(createPort('sfp', 'GE10 SFP'));
+                sfpGroup.appendChild(createPort('sfp', 'GE11 SFP'));
+                yellowBox.appendChild(sfpGroup);
+
+                portsWrapper.appendChild(yellowBox);
+
+                const consoleBox = document.createElement('div');
+                consoleBox.className = 'flex flex-col items-center bg-slate-900 p-1 rounded border border-slate-700';
+                consoleBox.appendChild(createPort('rj45', 'CONSOLE'));
+                const consoleLabel = document.createElement('span');
+                consoleLabel.className = 'bg-rose-600 text-white text-[6px] px-1 font-bold rounded-sm mt-0.5';
+                consoleLabel.innerText = 'CONSOLE';
+                consoleBox.appendChild(consoleLabel);
+                portsWrapper.appendChild(consoleBox);
+
+                deviceEl.appendChild(portsWrapper);
+            }
+
+            // B) SWITCH 24 PUERTOS
+            else if (type === 'switch-24') {
+                deviceEl.className = 'device-instance device-switch-24';
+                
+                const infoBox = document.createElement('div');
+                infoBox.className = 'flex items-center gap-2 pl-2';
+                infoBox.innerHTML = `
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]"></div>
+                    <div class="text-[9px] font-bold text-slate-300 font-mono">SW-CATALYST-24G</div>
+                `;
+                deviceEl.appendChild(infoBox);
+
+                const centerPorts = document.createElement('div');
+                centerPorts.className = 'flex items-center gap-3 ml-auto pr-2';
+
+                for (let g = 0; g < 2; g++) {
+                    let portList = [];
+                    let start = g * 12;
+                    for (let i = 1; i <= 11; i += 2) portList.push({ name: `P${start + i}`, type: 'rj45' });
+                    for (let i = 2; i <= 12; i += 2) portList.push({ name: `P${start + i}`, type: 'rj45' });
+
+                    centerPorts.appendChild(createDoubleRowPortGroup(portList));
+                }
+
+                const sfpBlock = document.createElement('div');
+                sfpBlock.className = 'flex gap-1 bg-slate-950 p-1.5 rounded border border-slate-800';
+                for (let s = 1; s <= 4; s++) sfpBlock.appendChild(createPort('sfp', `SFP+ ${s}`));
+                centerPorts.appendChild(sfpBlock);
+
+                deviceEl.appendChild(centerPorts);
+            }
+
+            // C) SWITCH 48 PUERTOS
+            else if (type === 'switch-48') {
+                deviceEl.className = 'device-instance device-switch-24';
+                
+                const infoBox = document.createElement('div');
+                infoBox.className = 'flex items-center gap-2 pl-2';
+                infoBox.innerHTML = `
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]"></div>
+                    <div class="text-[9px] font-bold text-slate-300 font-mono">SW-CORE-48G-PoE+</div>
+                `;
+                deviceEl.appendChild(infoBox);
+
+                const centerPorts = document.createElement('div');
+                centerPorts.className = 'flex items-center gap-2 ml-auto pr-2';
+
+                for (let g = 0; g < 4; g++) {
+                    let portList = [];
+                    let start = g * 12;
+                    for (let i = 1; i <= 11; i += 2) portList.push({ name: `P${start + i}`, type: 'rj45', poe: true });
+                    for (let i = 2; i <= 12; i += 2) portList.push({ name: `P${start + i}`, type: 'rj45', poe: true });
+                    centerPorts.appendChild(createDoubleRowPortGroup(portList));
+                }
+
+                deviceEl.appendChild(centerPorts);
+            }
+
+            // D) PATCH PANEL 24P
+            else if (type === 'patch-panel') {
+                deviceEl.className = 'device-instance device-patch-panel flex items-center justify-between px-3';
+
+                const brand = document.createElement('div');
+                brand.className = 'flex items-center gap-1.5';
+                brand.innerHTML = `
+                    <div class="w-2.5 h-2.5 bg-yellow-500 clip-path-star flex-shrink-0" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
+                    <span class="text-[9px] font-black text-slate-300 font-mono tracking-tight">PATCH PANEL</span>
+                `;
+                deviceEl.appendChild(brand);
+
+                const patchGroups = document.createElement('div');
+                patchGroups.className = 'flex items-center gap-3';
+
+                for (let b = 0; b < 3; b++) {
+                    const blockGroup = document.createElement('div');
+                    blockGroup.className = 'port-group-single-row';
+
+                    let start = b * 8;
+                    for (let p = 1; p <= 8; p++) {
+                        const portNum = start + p;
+                        
+                        const unit = document.createElement('div');
+                        unit.className = 'patch-port-unit';
+
+                        const labelBox = document.createElement('div');
+                        labelBox.className = 'patch-label-box';
+                        unit.appendChild(labelBox);
+
+                        const port = createPort('rj45', `Patch Port ${portNum}`, false, false);
+                        unit.appendChild(port);
+
+                        const numLabel = document.createElement('div');
+                        numLabel.className = 'patch-port-num';
+                        numLabel.innerText = portNum;
+                        unit.appendChild(numLabel);
+
+                        blockGroup.appendChild(unit);
+                    }
+                    patchGroups.appendChild(blockGroup);
+                }
+
+                deviceEl.appendChild(patchGroups);
+
+                const catLabel = document.createElement('div');
+                catLabel.className = 'text-[9px] font-bold text-slate-400 font-mono pr-1';
+                catLabel.innerText = 'Cat.6';
+                deviceEl.appendChild(catLabel);
+            }
+
+            // E) FIREWALL FORTINET / UTM
+            else if (type === 'firewall') {
+                deviceEl.className = 'device-instance device-firewall';
+                deviceEl.innerHTML = `<span class="text-[10px] font-black text-white tracking-wider pl-2">FORTIGATE UTM</span>`;
+
+                const ports = document.createElement('div');
+                ports.className = 'flex items-center gap-2 ml-auto pr-3';
+
+                let portList = [];
+                for (let i = 1; i <= 7; i += 2) portList.push({ name: `FW-${i}`, type: 'rj45' });
+                for (let i = 2; i <= 8; i += 2) portList.push({ name: `FW-${i}`, type: 'rj45' });
+
+                ports.appendChild(createDoubleRowPortGroup(portList));
+                deviceEl.appendChild(ports);
+            }
+
+            // F) LIU DE FIBRA Ã“PTICA
+            else if (type === 'fiber-liu') {
+                deviceEl.className = 'device-instance device-fiber-liu';
+
+                const brand = document.createElement('div');
+                brand.className = 'flex flex-col pl-2';
+                brand.innerHTML = `
+                    <div class="text-[9px] font-black text-cyan-400 tracking-wider">FIBER OPTIC LIU</div>
+                    <div class="text-[7px] font-mono text-slate-400 font-bold">24P LC DUPLEX OM3</div>
+                `;
+                deviceEl.appendChild(brand);
+
+                const tray = document.createElement('div');
+                tray.className = 'liu-shelf-tray';
+                deviceEl.appendChild(tray);
+
+                const lcPortGroup = document.createElement('div');
+                lcPortGroup.className = 'flex items-center gap-2 ml-auto pr-4';
+
+                for (let g = 0; g < 12; g++) {
+                    const duplexPair = document.createElement('div');
+                    duplexPair.className = 'flex gap-0.5 bg-slate-950 p-1 rounded border border-slate-800';
+                    duplexPair.appendChild(createPort('fiber-lc', `Fibra LC #${g*2 + 1}`, false));
+                    duplexPair.appendChild(createPort('fiber-lc', `Fibra LC #${g*2 + 2}`, false));
+                    lcPortGroup.appendChild(duplexPair);
+                }
+                deviceEl.appendChild(lcPortGroup);
+            }
+
+            // G) ORGANIZADOR TIPO DUCTO (HORIZONTAL)
+            else if (type === 'duct-organizer') {
+                deviceEl.className = 'device-instance device-duct-organizer';
+
+                const slotsWrapper = document.createElement('div');
+                slotsWrapper.className = 'w-full h-full flex items-center px-4 justify-between';
+                
+                const fingers = document.createElement('div');
+                fingers.className = 'duct-finger-slots flex-1 my-1 rounded';
+                for (let i = 0; i < 28; i++) {
+                    const f = document.createElement('div');
+                    f.className = 'duct-finger';
+                    fingers.appendChild(f);
+                }
+                slotsWrapper.appendChild(fingers);
+
+                const cover = document.createElement('div');
+                cover.className = 'duct-cover';
+                cover.innerHTML = `
+                    <span class="text-[8px] font-mono font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        ORGANIZADOR TIPO DUCTO HORIZONTAL 1U
+                    </span>
+                `;
+                cover.onclick = function(e) {
+                    e.stopPropagation();
+                    cover.classList.toggle('open');
+                    drawAllCables();
+                };
+
+                deviceEl.appendChild(cover);
+                deviceEl.appendChild(slotsWrapper);
+            }
+
+            // H) ORGANIZADOR PASA CABLES CEPILLO
+            else if (type === 'organizer') {
+                deviceEl.className = 'device-instance bg-slate-950 border border-slate-900 justify-center';
+                deviceEl.innerHTML = `
+                    <div class="w-full mx-6 h-5 border-y-2 border-slate-800 bg-[repeating-linear-gradient(90deg,#1e293b,#1e293b_12px,#090d16_12px,#090d16_20px)] flex items-center justify-center">
+                        <span class="text-[8px] font-mono text-slate-500 font-bold uppercase tracking-widest">Organizador Cepillo 1U</span>
+                    </div>
+                `;
+            }
+
+            // I) ONT GPON / MÃ“DEM ISP
+            else if (type === 'ont-isp') {
+                deviceEl.className = 'device-instance device-ont-isp';
+
+                const brand = document.createElement('div');
+                brand.className = 'flex items-center gap-2 pl-2';
+                brand.innerHTML = `
+                    <div class="flex flex-col">
+                        <div class="text-[9px] font-black text-emerald-400 tracking-wider flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            ONT GPON ISP
+                        </div>
+                        <div class="text-[7px] font-mono text-slate-400">HG8245H / FiberModem</div>
+                    </div>
+                    <div class="flex gap-1 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 text-[7px] font-mono font-bold">
+                        <span class="text-emerald-400">PON</span>
+                        <span class="text-slate-600">LOS</span>
+                        <span class="text-sky-400">LAN</span>
+                    </div>
+                `;
+                deviceEl.appendChild(brand);
+
+                const ports = document.createElement('div');
+                ports.className = 'flex items-center gap-3 ml-auto pr-3';
+
+                const gponBlock = document.createElement('div');
+                gponBlock.className = 'flex flex-col items-center bg-slate-950 p-1 rounded border border-emerald-900/60';
+                gponBlock.appendChild(createPort('gpon', 'GPON Fiber IN (SC/APC)', false));
+                const gponLabel = document.createElement('span');
+                gponLabel.className = 'text-[6px] text-emerald-400 font-mono font-bold mt-0.5';
+                gponLabel.innerText = 'GPON FO';
+                gponBlock.appendChild(gponLabel);
+                ports.appendChild(gponBlock);
+
+                const lanGroup = document.createElement('div');
+                lanGroup.className = 'flex gap-1 bg-slate-950 p-1 rounded border border-slate-800';
+                for (let l = 1; l <= 4; l++) {
+                    lanGroup.appendChild(createPort('rj45', `LAN ${l}`));
+                }
+                ports.appendChild(lanGroup);
+
+                deviceEl.appendChild(ports);
+            }
+
+            // J) NVR IP VIDEOVIGILANCIA 16 CANALES POE
+            else if (type === 'nvr') {
+                deviceEl.className = 'device-instance device-nvr';
+
+                const brand = document.createElement('div');
+                brand.className = 'flex items-center gap-2 pl-2';
+                brand.innerHTML = `
+                    <div class="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_6px_#a855f7] animate-pulse"></div>
+                    <div class="flex flex-col">
+                        <div class="text-[9px] font-black text-purple-300 tracking-wider">NVR 16-CH PoE</div>
+                        <div class="text-[7px] font-mono text-slate-400">4K CCTV Video Recorder</div>
+                    </div>
+                    <div class="hidden sm:flex gap-1 text-[7px] font-mono text-emerald-400 font-bold bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
+                        REC â—
+                    </div>
+                `;
+                deviceEl.appendChild(brand);
+
+                const centerPorts = document.createElement('div');
+                centerPorts.className = 'flex items-center gap-2.5 ml-auto pr-3';
+
+                let poeList = [];
+                for (let i = 1; i <= 15; i += 2) poeList.push({ name: `CAM-${i} (PoE)`, type: 'rj45', poe: true });
+                for (let i = 2; i <= 16; i += 2) poeList.push({ name: `CAM-${i} (PoE)`, type: 'rj45', poe: true });
+                centerPorts.appendChild(createDoubleRowPortGroup(poeList));
+
+                const uplinkBlock = document.createElement('div');
+                uplinkBlock.className = 'flex flex-col items-center bg-slate-950 p-1 rounded border border-purple-900/60';
+                uplinkBlock.appendChild(createPort('rj45', 'NVR LAN Uplink', true));
+                const uplinkLabel = document.createElement('span');
+                uplinkLabel.className = 'text-[6px] text-purple-300 font-mono font-bold mt-0.5';
+                uplinkLabel.innerText = 'LAN UPLINK';
+                uplinkBlock.appendChild(uplinkLabel);
+                centerPorts.appendChild(uplinkBlock);
+
+                const hddGroup = document.createElement('div');
+                hddGroup.className = 'flex gap-1 pl-1';
+                hddGroup.innerHTML = `
+                    <div class="hdd-bay !w-3 !h-6" title="HDD 1"></div>
+                    <div class="hdd-bay !w-3 !h-6" title="HDD 2"></div>
+                `;
+                centerPorts.appendChild(hddGroup);
+
+                deviceEl.appendChild(centerPorts);
+            }
+
+            // K) SERVIDOR
+            else if (type === 'server') {
+                deviceEl.className = 'device-instance device-server';
+                deviceEl.innerHTML = `<span class="text-[9px] font-mono font-bold text-slate-200 pl-2">SRV-DELL-R640</span>`;
+
+                const bays = document.createElement('div');
+                bays.className = 'flex gap-1.5 ml-auto pr-4';
+                for (let h = 0; h < 4; h++) {
+                    const bay = document.createElement('div');
+                    bay.className = 'hdd-bay';
+                    bays.appendChild(bay);
+                }
+                deviceEl.appendChild(bays);
+            }
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'delete-btn';
+            delBtn.innerText = 'âœ•';
+            delBtn.onclick = function(e) {
+                e.stopPropagation();
+                removeCablesForDevice(deviceEl);
+                deviceEl.remove();
+                drawAllCables();
+            };
+            deviceEl.appendChild(delBtn);
+
+            slotElement.appendChild(deviceEl);
+        }
+
+        // HEPER: CREAR GRUPO DE PUERTOS EN DOBLE HILERA
+        function createDoubleRowPortGroup(portsArray) {
+            const group = document.createElement('div');
+            group.className = 'port-group-double';
+
+            portsArray.forEach(pData => {
+                const port = createPort(pData.type, pData.name, true, pData.poe || false);
+                group.appendChild(port);
+            });
+
+            return group;
+        }
+
+        // HELPER: CREAR PUERTO INTERACTIVO
+        function createPort(type, title, hasLeds = true, isPoe = false) {
+            portCounter++;
+            const portEl = document.createElement('div');
+            portEl.className = `port-${type} port-interactive`;
+            portEl.id = `port-${portCounter}`;
+            portEl.title = title;
+
+            if (hasLeds && type === 'rj45') {
+                const ledContainer = document.createElement('div');
+                ledContainer.className = 'port-led-container';
+
+                const actLed = document.createElement('div');
+                actLed.className = 'port-led led-act';
+                actLed.style.animationDelay = `${(Math.random() * 0.5).toFixed(2)}s`;
+                ledContainer.appendChild(actLed);
+
+                if (isPoe || Math.random() > 0.6) {
+                    const poeLed = document.createElement('div');
+                    poeLed.className = 'port-led led-poe';
+                    ledContainer.appendChild(poeLed);
+                }
+
+                portEl.appendChild(ledContainer);
+            }
+
+            portEl.onclick = function(e) {
+                e.stopPropagation();
+                if (!isCableMode) return;
+
+                if (!selectedPortForCable) {
+                    selectedPortForCable = portEl;
+                    portEl.classList.add('selected-for-cable');
+                } else {
+                    if (selectedPortForCable.id !== portEl.id) {
+                        const color = document.getElementById('cable-color').value;
+                        cables.push({
+                            id: `cable-${Date.now()}`,
+                            port1: selectedPortForCable.id,
+                            port2: portEl.id,
+                            color: color,
+                            route: currentCableRoute 
+                        });
+                        drawAllCables();
+                    }
+                    selectedPortForCable.classList.remove('selected-for-cable');
+                    selectedPortForCable = null;
+                }
+            };
+
+            return portEl;
+        }
+
+        // --- CABLE DRAFTING (SVG BEZIER CURVES) ---
+
+        function createCableSegment(dPath, color, isHidden, isVertical = false) {
+            const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            
+            // Sombra
+            const pS = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            pS.setAttribute('d', dPath); 
+            pS.setAttribute('stroke', '#000000'); 
+            pS.setAttribute('stroke-width', '7'); 
+            pS.setAttribute('stroke-opacity', '0.5'); 
+            pS.setAttribute('fill', 'none');
+            if (!isHidden && !isVertical) pS.setAttribute('filter', 'url(#cable-shadow)');
+            group.appendChild(pS);
+            
+            // Cuerpo principal
+            const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            p.setAttribute('d', dPath); 
+            p.setAttribute('stroke', color); 
+            p.setAttribute('stroke-width', '5'); 
+            p.setAttribute('stroke-linecap', 'round'); 
+            p.setAttribute('fill', 'none');
+            if (isHidden) {
+                p.setAttribute('opacity', '0.05');
+                p.setAttribute('stroke-dasharray', '3,3');
+            } else {
+                p.setAttribute('opacity', isVertical ? '0.2' : '0.9');
+            }
+            group.appendChild(p);
+            
+            // Brillo
+            if (!isHidden) {
+                const pH = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                pH.setAttribute('d', dPath); 
+                pH.setAttribute('stroke', '#ffffff'); 
+                pH.setAttribute('stroke-width', '1.5'); 
+                pH.setAttribute('stroke-opacity', isVertical ? '0.1' : '0.35'); 
+                pH.setAttribute('stroke-linecap', 'round'); 
+                pH.setAttribute('fill', 'none');
+                group.appendChild(pH);
+            }
+            return group;
+        }
+
+        function drawBoot(x, y, color) {
+            const boot = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            boot.setAttribute('x', x - 4); 
+            boot.setAttribute('y', y - 5); 
+            boot.setAttribute('width', 8); 
+            boot.setAttribute('height', 10); 
+            boot.setAttribute('rx', 2); 
+            boot.setAttribute('fill', '#1e293b'); 
+            boot.setAttribute('stroke', color); 
+            boot.setAttribute('stroke-width', '1.5');
+            return boot;
+        }
+
+
+        function toggleCableMode() {
+            isCableMode = !isCableMode;
+            const btn = document.getElementById('btn-cable');
+            if (isCableMode) {
+                btn.classList.add('active');
+                workspace.style.cursor = 'crosshair';
+            } else {
+                btn.classList.remove('active');
+                workspace.style.cursor = 'default';
+                if (selectedPortForCable) {
+                    selectedPortForCable.classList.remove('selected-for-cable');
+                    selectedPortForCable = null;
+                }
+            }
+        }
+
+        function drawAllCables() {
+            svgLayer.innerHTML = '';
+            const workspaceRect = workspace.getBoundingClientRect();
+
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            defs.innerHTML = `
+                <filter id="cable-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="1" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.8"/>
+                </filter>
+            `;
+            svgLayer.appendChild(defs);
+
+            cables = cables.filter(cable => {
+                const p1 = document.getElementById(cable.port1);
+                const p2 = document.getElementById(cable.port2);
+                
+                if (!p1 || !p2) return false;
+
+                const r1 = p1.getBoundingClientRect();
+                const r2 = p2.getBoundingClientRect();
+
+                const x1 = r1.left - workspaceRect.left + workspace.scrollLeft + (r1.width / 2);
+                const y1 = r1.top - workspaceRect.top + workspace.scrollTop + (r1.height / 2);
+                
+                const x2 = r2.left - workspaceRect.left + workspace.scrollLeft + (r2.width / 2);
+                const y2 = r2.top - workspaceRect.top + workspace.scrollTop + (r2.height / 2);
+
+                const slot1 = p1.closest('.rack-slot');
+                const slot2 = p2.closest('.rack-slot');
+                const rack1 = slot1 ? slot1.closest('.rack-container') : null;
+                const rack2 = slot2 ? slot2.closest('.rack-container') : null;
+
+                const gGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                gGroup.setAttribute('style', 'cursor: pointer; pointer-events: auto;');
+                
+                // FunciÃ³n de eliminaciÃ³n
+                gGroup.ondblclick = function(e) { 
+                    e.stopPropagation(); 
+                    cables = cables.filter(c => c.id !== cable.id); 
+                    drawAllCables(); 
+                };
+
+                // LÃ³gica de Organizador Horizontal Intermedio (Prioridad sobre Vertical si es 'direct')
+                let organizerEl = null;
+                if (cable.route === 'direct' && rack1 && rack2 && rack1.id === rack2.id) {
+                    const u1 = parseInt(slot1.id.split('-u')[1]);
+                    const u2 = parseInt(slot2.id.split('-u')[1]);
+                    const minU = Math.min(u1, u2);
+                    const maxU = Math.max(u1, u2);
+
+                    for (let u = minU; u <= maxU; u++) {
+                        const sEl = document.getElementById(`${rack1.id}-u${u}`);
+                        if (sEl) {
+                            const org = sEl.querySelector('.device-instance[data-device-type="duct-organizer"], .device-instance[data-device-type="organizer"]');
+                            if (org) {
+                                organizerEl = org;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (organizerEl) {
+                    // --- DIBUJAR RUTA POR ORGANIZADOR HORIZONTAL ---
+
+                    const rOrg = organizerEl.getBoundingClientRect();
+                    const orgTopY = rOrg.top - workspaceRect.top + workspace.scrollTop + 8;
+                    const orgBottomY = rOrg.bottom - workspaceRect.top + workspace.scrollTop - 8;
+
+                    const isTop1 = y1 < y2;
+                    const topPt = isTop1 ? {x: x1, y: y1} : {x: x2, y: y2};
+                    const botPt = isTop1 ? {x: x2, y: y2} : {x: x1, y: y1};
+
+                    if (topPt.y < orgTopY && botPt.y > orgBottomY) {
+                        const cover = organizerEl.querySelector('.duct-cover');
+                        const isClosed = cover && !cover.classList.contains('open');
+
+                        const dyTop = Math.abs(orgTopY - topPt.y);
+                        const dTop = `M ${topPt.x} ${topPt.y} C ${topPt.x} ${topPt.y + dyTop * 0.6}, ${topPt.x} ${orgTopY - 4}, ${topPt.x} ${orgTopY + 4}`;
+
+                        const dyBot = Math.abs(botPt.y - orgBottomY);
+                        const dBot = `M ${botPt.x} ${orgBottomY - 4} C ${botPt.x} ${orgBottomY + 4}, ${botPt.x} ${botPt.y - dyBot * 0.6}, ${botPt.x} ${botPt.y}`;
+
+                        // Tramo central invisible o punteado
+                        const dMid = `M ${topPt.x} ${orgTopY + 4} C ${topPt.x} ${orgTopY + 16}, ${botPt.x} ${orgBottomY - 16}, ${botPt.x} ${orgBottomY - 4}`;
+                        gGroup.appendChild(createCableSegment(dMid, cable.color, isClosed, true));
+
+                        // Tramos expuestos
+                        gGroup.appendChild(createCableSegment(dTop, cable.color, false));
+                        gGroup.appendChild(createCableSegment(dBot, cable.color, false));
+
+                        gGroup.appendChild(drawBoot(topPt.x, topPt.y, cable.color));
+                        gGroup.appendChild(drawBoot(botPt.x, botPt.y, cable.color));
+
+                        svgLayer.appendChild(gGroup);
+                        return true;
+                    }
+                } 
+                else if ((cable.route === 'left' || cable.route === 'right') && rack1 && rack2 && rack1.id === rack2.id) {
+                    
+                    const side = cable.route;
+                    const vertOrg = rack1.querySelector(`.vertical-organizer.${side}`);
+                    
+                    if (vertOrg) {
+                        const rVert = vertOrg.getBoundingClientRect();
+                        // Coordenadas x del ducto vertical
+                        const vertCenterX = rVert.left - workspaceRect.left + workspace.scrollLeft + (rVert.width / 2);
+                        
+                        const cover = vertOrg.querySelector('.vert-cover');
+                        const isClosed = cover && !cover.classList.contains('open');
+
+                        // NUEVA LÃ“GICA: Enrutamiento en Ã¡ngulo recto para NO tapar puertos
+                        const s1Rect = slot1.getBoundingClientRect();
+                        const s2Rect = slot2.getBoundingClientRect();
+
+                        // Calculamos la "cuneta" o base de cada unidad.
+                        // El cable bajarÃ¡ recto hasta casi el borde inferior de su equipo antes de irse de lado.
+                        const gapY1 = s1Rect.bottom - workspaceRect.top + workspace.scrollTop - 3;
+                        const gapY2 = s2Rect.bottom - workspaceRect.top + workspace.scrollTop - 3;
+
+                        // Trazado del puerto 1 hacia el organizador lateral
+                        const dir1 = vertCenterX > x1 ? 1 : -1;
+                        let r1 = Math.min(12, Math.abs(gapY1 - y1) * 0.8, Math.abs(vertCenterX - x1) * 0.5);
+                        if(r1 < 2) r1 = 2; // Radio de curvatura mÃ­nimo para la esquina
+                        const dPath1 = `M ${x1} ${y1} L ${x1} ${gapY1 - r1} Q ${x1} ${gapY1} ${x1 + dir1 * r1} ${gapY1} L ${vertCenterX} ${gapY1}`;
+
+                        // Trazado del puerto 2 hacia el organizador lateral
+                        const dir2 = vertCenterX > x2 ? 1 : -1;
+                        let r2 = Math.min(12, Math.abs(gapY2 - y2) * 0.8, Math.abs(vertCenterX - x2) * 0.5);
+                        if(r2 < 2) r2 = 2; // Radio de curvatura mÃ­nimo para la esquina
+                        const dPath2 = `M ${x2} ${y2} L ${x2} ${gapY2 - r2} Q ${x2} ${gapY2} ${x2 + dir2 * r2} ${gapY2} L ${vertCenterX} ${gapY2}`;
+
+                        // LÃ­nea recta vertical dentro del ducto conectando ambas alturas
+                        const dMid = `M ${vertCenterX} ${gapY1} L ${vertCenterX} ${gapY2}`;
+
+                        // Dibujar segmentos
+                        gGroup.appendChild(createCableSegment(dMid, cable.color, isClosed, true));
+                        gGroup.appendChild(createCableSegment(dPath1, cable.color, false));
+                        gGroup.appendChild(createCableSegment(dPath2, cable.color, false));
+
+                        gGroup.appendChild(drawBoot(x1, y1, cable.color));
+                        gGroup.appendChild(drawBoot(x2, y2, cable.color));
+
+                        svgLayer.appendChild(gGroup);
+                        return true;
+                    }
+                }
+
+                // --- DIBUJAR RUTA DIRECTA (POR DEFECTO O SI NO HAY ORGANIZADORES) ---
+                const distance = Math.hypot(x2 - x1, y2 - y1);
+                const drop = Math.min(Math.max(distance * 0.35, 25), 180);
+                
+                const d = `M ${x1} ${y1} C ${x1} ${y1 + drop}, ${x2} ${y2 + drop}, ${x2} ${y2}`;
+                
+                gGroup.appendChild(createCableSegment(d, cable.color, false));
+
+                gGroup.appendChild(drawBoot(x1, y1, cable.color));
+                gGroup.appendChild(drawBoot(x2, y2, cable.color));
+
+                svgLayer.appendChild(gGroup);
+                return true;
+            });
+        }
+
+        function clearCables() {
+            cables = [];
+            drawAllCables();
+        }
+
+        function removeCablesForDevice(deviceEl) {
+            const ports = deviceEl.querySelectorAll('.port-interactive');
+            const portIds = Array.from(ports).map(p => p.id);
+            cables = cables.filter(c => !portIds.includes(c.port1) && !portIds.includes(c.port2));
+        }
+
+        function removeCablesForRack(rackEl) {
+            const ports = rackEl.querySelectorAll('.port-interactive');
+            const portIds = Array.from(ports).map(p => p.id);
+            cables = cables.filter(c => !portIds.includes(c.port1) && !portIds.includes(c.port2));
+        }
+
+        function clearWorkspace() {
+            document.querySelectorAll('.rack-container').forEach(r => r.remove());
+            cables = [];
+            rackCounter = 0;
+            deviceCounter = 0;
+            drawAllCables();
+            checkWorkspaceEmpty();
+        }
+
+        function checkWorkspaceEmpty() {
+            const racks = document.querySelectorAll('.rack-container');
+            const msg = document.getElementById('empty-workspace-msg');
+            if (racks.length === 0 && msg) msg.style.display = 'block';
+        }
+
+        // RESUMEN BOM (BILL OF MATERIALS)
+        function exportSummary() {
+            const content = document.getElementById('bom-content');
+            const devices = document.querySelectorAll('.device-instance');
+            
+            let counts = {};
+            devices.forEach(d => {
+                let name = d.innerText.split('\n')[0] || 'Equipo de Red';
+                counts[name] = (counts[name] || 0) + 1;
+            });
+
+            let html = `<div class="text-emerald-400 font-bold mb-2">> LISTADO DE MATERIALES (BOM):</div>`;
+            html += `<div>â€¢ Gabinetes Rack 42U (C/Org. Verticales): ${document.querySelectorAll('.rack-container').length}</div>`;
+            
+            for (let k in counts) {
+                html += `<div>â€¢ ${k}: ${counts[k]}</div>`;
+            }
+
+            html += `<div class="mt-2 text-sky-400">â€¢ Parches de Cable Conectados: ${cables.length} cables</div>`;
+
+            content.innerHTML = html;
+            document.getElementById('bom-modal').classList.remove('hidden');
+        }
+
+        // --- PERSISTENCIA (GUARDADO Y CARGA MONGODB) ---
+        async function apiFetchSimulador(method, data = null) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const areaId = urlParams.get('area');
+            if (!areaId) return null;
+
+            let token = localStorage.getItem('pt_admin_token');
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const options = { method, headers };
+            if (data) options.body = JSON.stringify(data);
+
+            try {
+                // Forzar conexion al servidor de node hardcodeada (convencion del usuario)
+                const res = await fetch(`https://simuladorrender.com/api/topologia/areas/${areaId}/simulador`, options);
+                return await res.json();
+            } catch (err) {
+                console.error(err);
+                return null;
+            }
+        }
+
+        async function loadSimulatorData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.get('area')) return;
+
+            const json = await apiFetchSimulador('GET');
+            if (json && json.ok && json.simulador_data && json.simulador_data !== '{}') {
+                try {
+                    const data = JSON.parse(json.simulador_data);
+                    if (data.racks && data.racks.length > 0) {
+                        clearWorkspace();
+
+                        data.racks.forEach(rackData => {
+                            // 1. Crear el rack (usa rackCounter interno p.ej. rack-1)
+                            createRack();
+                            // El Ãºltimo rack aÃ±adido al workspace es el que acabamos de crear
+                            const newRack = workspace.querySelector('.rack-container:last-of-type');
+                            const oldId = newRack.id; // ej: "rack-1"
+
+                            // 2. Si el ID guardado es diferente, actualizar el rack Y todos los slots con el prefijo
+                            if (oldId !== rackData.id) {
+                                newRack.querySelectorAll('.rack-slot').forEach(slot => {
+                                    slot.id = slot.id.replace(oldId, rackData.id);
+                                });
+                                newRack.id = rackData.id;
+                            }
+
+                            // 3. Restaurar equipos en sus slots
+                            rackData.slots.forEach(slotData => {
+                                const slotEl = document.getElementById(`${rackData.id}-u${slotData.u}`);
+                                if (!slotEl) return;
+
+                                // Borrar slot content pero preservar los nÃºmero labels
+                                const existingLabels = Array.from(slotEl.querySelectorAll('.slot-number'));
+                                slotEl.innerHTML = '';
+                                existingLabels.forEach(l => slotEl.appendChild(l));
+
+                                let dev;
+
+                                // â”€â”€ Equipo personalizado â”€â”€
+                                if (slotData.type && slotData.type.startsWith('custom:')) {
+                                    const customId = slotData.type.replace('custom:', '');
+                                    const cfg = (window._customDeviceCatalog || {})[customId];
+                                    if (cfg) {
+                                        deviceCounter++;
+                                        dev = renderCustomDeviceDOM(cfg, false);
+                                        dev.id = `device-${deviceCounter}`;
+                                        dev.dataset.deviceType = slotData.type;
+                                        dev.dataset.customId   = customId;
+                                        slotEl.appendChild(dev);
+                                    }
+                                } else {
+                                    // â”€â”€ Equipo predefinido â”€â”€
+                                    dev = createDeviceInSlot(slotEl, slotData.type);
+                                    slotEl.appendChild(dev);
+                                }
+
+                                // Re-bind slot drop events (se pierden con innerHTML = '')
+                                slotEl.ondragover  = allowDropSlot;
+                                slotEl.ondragenter = function() { if (!this.querySelector('.device-instance')) this.classList.add('drag-over'); };
+                                slotEl.ondragleave = function() { this.classList.remove('drag-over'); };
+                                slotEl.ondrop      = dropToSlot;
+
+                                // 4. Restaurar IDs de puertos para que el cable-map funcione
+                                if (dev && slotData.ports && slotData.ports.length) {
+                                    const ports = dev.querySelectorAll('.port-interactive');
+                                    ports.forEach((p, i) => {
+                                        if (slotData.ports[i]) {
+                                            p.id = slotData.ports[i];
+                                            const numericId = parseInt(p.id.split('-')[1]);
+                                            if (!isNaN(numericId) && numericId >= portCounter) {
+                                                portCounter = numericId + 1;
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+                        });
+
+                        // 5. Restaurar cables y redibujar
+                        cables = data.cables || [];
+                        // PequeÃ±o delay para que el DOM estÃ© completamente pintado
+                        requestAnimationFrame(() => drawAllCables());
+                    }
+                } catch(e) {
+                    console.error("Error cargando simulador_data", e);
+                }
+            }
+        }
+
+        async function saveSimulator() {
+            const btn = document.querySelector('button[onclick="saveSimulator()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'ðŸ’¾ Guardando...';
+
+            const racks = [];
+            document.querySelectorAll('.rack-container').forEach(rack => {
+                const slots = [];
+                rack.querySelectorAll('.rack-slot').forEach(slot => {
+                    const dev = slot.querySelector('.device-instance');
+                    if (dev) {
+                        const u = slot.id.split('-u')[1];
+                        const type = dev.dataset.deviceType;
+                        
+                        // Guardar los IDs autonumÃ©ricos de los puertos
+                        const ports = Array.from(dev.querySelectorAll('.port-interactive')).map(p => p.id);
+                        slots.push({ u: parseInt(u), type, ports });
+                    }
+                });
+                racks.push({ id: rack.id, slots });
+            });
+
+            const data = { racks, cables };
+            const res = await apiFetchSimulador('PUT', { simulador_data: JSON.stringify(data) });
+            
+            if (res && res.ok) {
+                btn.innerHTML = 'âœ… Guardado';
+                setTimeout(() => btn.innerHTML = originalText, 2000);
+            } else {
+                btn.innerHTML = 'âŒ Error';
+                setTimeout(() => btn.innerHTML = originalText, 2000);
+            }
+        }
+        
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadCustomDevices();   // catÃ¡logo primero (para restaurar custom devices)
+            loadSimulatorData();         // luego el rack, que usa _customDeviceCatalog
+        });
+
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        //  CONSTRUCTOR DE EQUIPOS PERSONALIZADOS
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+        let portGroupCount = 0;
+        let editingDeviceId = null;   // null = crear, string = editar
+
+        /* â”€â”€ Helpers API â”€â”€ */
+        function customApiHeaders() {
+            const token = localStorage.getItem('pt_admin_token');
+            const h = { 'Content-Type': 'application/json' };
+            if (token) h['Authorization'] = `Bearer ${token}`;
+            return h;
+        }
+
+        async function customApiFetch(method, path, body) {
+            const res = await fetch(`https://simuladorrender.com/api/custom-devices${path}`, {
+                method,
+                headers: customApiHeaders(),
+                body: body ? JSON.stringify(body) : undefined
+            });
+            return res.json();
+        }
+
+        /* â”€â”€ Abrir / Cerrar Modal â”€â”€ */
+        function openBuilder(deviceData = null) {
+            editingDeviceId = deviceData ? deviceData._id : null;
+            resetBuilderForm();
+            if (deviceData) populateBuilderForm(deviceData);
+            document.getElementById('builder-overlay').classList.remove('hidden');
+            updatePreview();
+        }
+
+        function closeBuilder() {
+            document.getElementById('builder-overlay').classList.add('hidden');
+        }
+
+        // Cerrar al hacer clic fuera del modal
+        document.getElementById('builder-overlay').addEventListener('click', function(e) {
+            if (e.target === this) closeBuilder();
+        });
+
+        /* â”€â”€ Reset form â”€â”€ */
+        function resetBuilderForm() {
+            document.getElementById('bld-nombre').value = '';
+            document.getElementById('bld-tipo').value = 'switch';
+            document.getElementById('bld-units').value = '1';
+            document.getElementById('bld-chassis-color').value = '#1e293b';
+            document.getElementById('bld-label').value = '';
+            document.getElementById('bld-label-color').value = '#f8fafc';
+            document.getElementById('bld-port-side').value = 'right';
+            document.getElementById('port-groups-container').innerHTML = '';
+            portGroupCount = 0;
+            document.getElementById('builder-save-btn').textContent = 'ðŸ’¾ Guardar en CatÃ¡logo';
+        }
+
+        /* â”€â”€ Rellenar form al editar â”€â”€ */
+        function populateBuilderForm(d) {
+            document.getElementById('bld-nombre').value = d.nombre || '';
+            document.getElementById('bld-tipo').value = d.tipo || 'switch';
+            document.getElementById('bld-units').value = String(d.chassis_units || 1);
+            document.getElementById('bld-chassis-color').value = d.chassis_color || '#1e293b';
+            document.getElementById('bld-label').value = d.label_text || '';
+            document.getElementById('bld-label-color').value = d.label_color || '#f8fafc';
+            document.getElementById('bld-port-side').value = d.port_side || 'right';
+            (d.port_groups || []).forEach(pg => addPortGroup(pg));
+            document.getElementById('builder-save-btn').textContent = 'âœï¸ Actualizar Equipo';
+        }
+
+        /* â”€â”€ GestiÃ³n de Grupos de Puertos â”€â”€ */
+        function addPortGroup(data = {}) {
+            portGroupCount++;
+            const id = portGroupCount;
+            const container = document.getElementById('port-groups-container');
+
+            const card = document.createElement('div');
+            card.className = 'port-group-card';
+            card.id = `pg-${id}`;
+            card.innerHTML = `
+                <button class="remove-group-btn" onclick="removePortGroup(${id})">âœ•</button>
+                <div class="builder-section-title" style="font-size:0.6rem;">Grupo ${id}</div>
+                <div class="builder-field-row">
+                    <div class="builder-field">
+                        <label>Etiqueta del grupo</label>
+                        <input type="text" id="pg-${id}-label" value="${data.label||''}" placeholder="ej: GE Puertos" oninput="updatePreview()">
+                    </div>
+                    <div class="builder-field">
+                        <label>Tipo de puerto</label>
+                        <select id="pg-${id}-type" onchange="updatePreview()">
+                            <option value="rj45" ${data.type==='rj45'?'selected':''}>RJ45 (Ethernet)</option>
+                            <option value="sfp" ${data.type==='sfp'?'selected':''}>SFP</option>
+                            <option value="sfp+" ${data.type==='sfp+'?'selected':''}>SFP+</option>
+                            <option value="fiber-lc" ${data.type==='fiber-lc'?'selected':''}>Fibra LC Duplex</option>
+                            <option value="gpon" ${data.type==='gpon'?'selected':''}>GPON (SC APC)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="builder-field-row">
+                    <div class="builder-field">
+                        <label>Cantidad de puertos</label>
+                        <input type="number" id="pg-${id}-count" value="${data.count||4}" min="1" max="96" oninput="updatePreview()">
+                    </div>
+                    <div class="builder-field">
+                        <label>Acomodo</label>
+                        <select id="pg-${id}-layout" onchange="updatePreview()">
+                            <option value="single" ${data.layout==='single'?'selected':''}>Una fila</option>
+                            <option value="double" ${data.layout==='double'?'selected':''}>Doble fila (stacked)</option>
+                        </select>
+                    </div>
+                    <div class="builder-field" style="justify-content:flex-end;padding-top:1.1rem;">
+                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+                            <input type="checkbox" id="pg-${id}-leds" ${data.has_leds!==false?'checked':''} onchange="updatePreview()">
+                            <span>LEDs</span>
+                        </label>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+            updatePreview();
+        }
+
+        function removePortGroup(id) {
+            const card = document.getElementById(`pg-${id}`);
+            if (card) card.remove();
+            updatePreview();
+        }
+
+        /* â”€â”€ Leer estado del formulario â”€â”€ */
+        function readBuilderState() {
+            const portGroups = [];
+            document.querySelectorAll('.port-group-card').forEach(card => {
+                const id = card.id.replace('pg-', '');
+                portGroups.push({
+                    label:    document.getElementById(`pg-${id}-label`)?.value || '',
+                    type:     document.getElementById(`pg-${id}-type`)?.value || 'rj45',
+                    count:    parseInt(document.getElementById(`pg-${id}-count`)?.value) || 4,
+                    layout:   document.getElementById(`pg-${id}-layout`)?.value || 'single',
+                    has_leds: document.getElementById(`pg-${id}-leds`)?.checked !== false
+                });
+            });
+            return {
+                nombre:        document.getElementById('bld-nombre').value.trim(),
+                tipo:          document.getElementById('bld-tipo').value,
+                chassis_units: parseInt(document.getElementById('bld-units').value),
+                chassis_color: document.getElementById('bld-chassis-color').value,
+                label_text:    document.getElementById('bld-label').value.trim(),
+                label_color:   document.getElementById('bld-label-color').value,
+                port_side:     document.getElementById('bld-port-side').value,
+                port_groups:   portGroups
+            };
+        }
+
+        /* â”€â”€ Vista Previa en Tiempo Real â”€â”€ */
+        function updatePreview() {
+            const state = readBuilderState();
+            const previewEl = document.getElementById('builder-preview-device');
+            const infoEl    = document.getElementById('builder-preview-info');
+
+            if (!state.nombre && state.port_groups.length === 0) {
+                previewEl.innerHTML = '<div style="color:#475569;font-size:11px;text-align:center;padding:1rem;">Completa el formulario para ver la vista previa</div>';
+                infoEl.textContent = '';
+                return;
+            }
+            previewEl.innerHTML = '';
+            const el = renderCustomDeviceDOM(state, true);
+            previewEl.appendChild(el);
+
+            let totalPorts = state.port_groups.reduce((s, g) => s + g.count, 0);
+            infoEl.textContent = `${state.chassis_units}U Â· ${state.port_groups.length} grupo(s) Â· ${totalPorts} puertos en total`;
+        }
+
+        /* â”€â”€ Renderer de equipo personalizado (usado en preview y en rack) â”€â”€ */
+        function renderCustomDeviceDOM(cfg, isPreview = false) {
+            const uHeight = cfg.chassis_units === 2 ? 90 : 44;
+            const wrap = document.createElement('div');
+
+            if (!isPreview) {
+                // En el rack: usar clases CSS de device-instance para que rack-ear funcione
+                wrap.className = 'device-instance';
+                wrap.dataset.deviceType = 'custom:' + (cfg._id || cfg.customId || '');
+                wrap.dataset.customId   = cfg._id || cfg.customId || '';
+                wrap.style.cssText = `
+                    background: ${cfg.chassis_color};
+                    height: ${uHeight}px;
+                    display: flex;
+                    align-items: center;
+                    position: relative;
+                    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.4);
+                    border-top: 1px solid rgba(255,255,255,0.07);
+                    border-bottom: 1px solid rgba(0,0,0,0.5);
+                    border-radius: 2px;
+                `;
+
+                // Orejas de rack (tornillos) â€” deben estar fuera del overflow
+                const earL = document.createElement('div'); earL.className = 'rack-ear left';
+                earL.innerHTML = '<div class="screw"></div><div class="screw"></div>';
+                const earR = document.createElement('div'); earR.className = 'rack-ear right';
+                earR.innerHTML = '<div class="screw"></div><div class="screw"></div>';
+                wrap.appendChild(earL);
+                wrap.appendChild(earR);
+
+                // BotÃ³n de eliminar
+                const delBtn = document.createElement('button');
+                delBtn.className = 'delete-btn';
+                delBtn.textContent = 'âœ•';
+                delBtn.onclick = function(e) {
+                    e.stopPropagation();
+                    const slot = this.closest('.rack-slot');
+                    if (slot) {
+                        removeCablesForDevice(slot.querySelector('.device-instance'));
+                        slot.innerHTML = '';
+                        drawAllCables();
+                    }
+                };
+                wrap.appendChild(delBtn);
+            } else {
+                // En la vista previa: sin orejas, con overflow hidden para que se vea contenido
+                wrap.style.cssText = `
+                    background: ${cfg.chassis_color};
+                    height: ${uHeight}px;
+                    display: flex;
+                    align-items: center;
+                    position: relative;
+                    overflow: hidden;
+                    border-radius: 2px;
+                    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.4);
+                    border-top: 1px solid rgba(255,255,255,0.07);
+                    border-bottom: 1px solid rgba(0,0,0,0.5);
+                `;
+            }
+
+            // Etiqueta de marca / nombre
+            if (cfg.label_text || cfg.nombre) {
+                const brandEl = document.createElement('div');
+                brandEl.style.cssText = `
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    padding: 0 8px;
+                    min-width: 50px;
+                    flex-shrink: 0;
+                `;
+                if (cfg.label_text) {
+                    const b = document.createElement('div');
+                    b.style.cssText = `font-size:9px;font-weight:900;letter-spacing:1px;color:${cfg.label_color};line-height:1;`;
+                    b.textContent = cfg.label_text;
+                    brandEl.appendChild(b);
+                }
+                const n = document.createElement('div');
+                n.style.cssText = `font-size:7px;font-weight:700;color:${cfg.label_color}99;line-height:1.2;max-width:60px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-top:2px;`;
+                n.textContent = cfg.nombre || '';
+                brandEl.appendChild(n);
+                wrap.appendChild(brandEl);
+            }
+
+            // Indicador de tipo
+            const typeColors = { router:'#f59e0b', switch:'#22d3ee', server:'#94a3b8', firewall:'#ef4444', ont:'#10b981', nvr:'#a855f7', ups:'#f97316', otro:'#64748b' };
+            const typeLabels = { router:'RTR', switch:'SW', server:'SRV', firewall:'FW', ont:'ONT', nvr:'NVR', ups:'UPS', otro:'DEV' };
+            const badge = document.createElement('div');
+            badge.style.cssText = `
+                font-size:7px;font-weight:900;
+                color:${typeColors[cfg.tipo]||'#64748b'};
+                border:1px solid ${typeColors[cfg.tipo]||'#64748b'}55;
+                border-radius:3px;padding:1px 3px;
+                flex-shrink:0;margin:0 4px;
+                background:${typeColors[cfg.tipo]||'#64748b'}15;
+            `;
+            badge.textContent = typeLabels[cfg.tipo] || 'DEV';
+            wrap.appendChild(badge);
+
+            // Grupos de puertos
+            const alignMap = { left: 'flex-start', center: 'center', right: 'flex-end' };
+            const alignment = alignMap[cfg.port_side || 'right'];
+            const portsArea = document.createElement('div');
+            portsArea.style.cssText = `display:flex;align-items:center;justify-content:${alignment};gap:6px;padding:0 8px;flex:1;overflow:hidden;`;
+
+            (cfg.port_groups || []).forEach(pg => {
+                const group = document.createElement('div');
+                group.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;';
+
+                if (pg.label) {
+                    const lbl = document.createElement('div');
+                    lbl.style.cssText = 'font-size:5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;line-height:1;';
+                    lbl.textContent = pg.label;
+                    group.appendChild(lbl);
+                }
+
+                const rows = pg.layout === 'double' ? 2 : 1;
+                const cols = pg.layout === 'double' ? Math.ceil(pg.count / 2) : pg.count;
+
+                for (let row = 0; row < rows; row++) {
+                    const rowEl = document.createElement('div');
+                    rowEl.style.cssText = 'display:flex;gap:2px;';
+                    const portsInRow = pg.layout === 'double'
+                        ? Math.ceil((pg.count - row * cols) > cols ? cols : pg.count - row * cols)
+                        : pg.count;
+
+                    for (let i = 0; i < portsInRow; i++) {
+                        const portNum = row * cols + i + 1;
+                        if (!isPreview) {
+                            const portEl = createPort(pg.type, `${pg.label || 'P'}${portNum}`);
+                            rowEl.appendChild(portEl);
+                        } else {
+                            // Vista previa: elemento visual simple mÃ¡s pequeÃ±o
+                            const p = document.createElement('div');
+                            const portColors = { rj45:'#64748b', sfp:'#0ea5e9', 'sfp+':'#818cf8', 'fiber-lc':'#f59e0b', gpon:'#10b981' };
+                            p.style.cssText = `
+                                width:${pg.type==='rj45'?'11px':'9px'};
+                                height:${pg.type==='rj45'?'8px':'11px'};
+                                background:${portColors[pg.type]||'#64748b'};
+                                border-radius:${pg.type==='rj45'?'1px':'50%'};
+                                box-shadow: inset 0 2px 3px rgba(0,0,0,0.6);
+                                border:1px solid rgba(255,255,255,0.08);
+                            `;
+                            if (pg.has_leds) {
+                                const led = document.createElement('div');
+                                led.style.cssText = `width:3px;height:3px;background:#22c55e;border-radius:50%;margin:1px auto 0;box-shadow:0 0 4px #22c55e;`;
+                                const ledWrap = document.createElement('div');
+                                ledWrap.appendChild(p);
+                                ledWrap.appendChild(led);
+                                rowEl.appendChild(ledWrap);
+                            } else {
+                                rowEl.appendChild(p);
+                            }
+                        }
+                    }
+                    group.appendChild(rowEl);
+                }
+
+                portsArea.appendChild(group);
+
+                // Separador entre grupos
+                if (cfg.port_groups.indexOf(pg) < cfg.port_groups.length - 1) {
+                    const sep = document.createElement('div');
+                    sep.style.cssText = 'width:1px;height:60%;background:#334155;flex-shrink:0;';
+                    portsArea.appendChild(sep);
+                }
+            });
+
+            wrap.appendChild(portsArea);
+            return wrap;
+        }
+
+        /* â”€â”€ Guardar equipo en MongoDB â”€â”€ */
+        async function saveCustomDevice() {
+            const state = readBuilderState();
+            if (!state.nombre) {
+                alert('Por favor ingresa el nombre del equipo.');
+                return;
+            }
+            const btn = document.getElementById('builder-save-btn');
+            btn.disabled = true;
+            btn.textContent = 'â³ Guardando...';
+
+            try {
+                let res;
+                if (editingDeviceId) {
+                    res = await customApiFetch('PUT', `/${editingDeviceId}`, state);
+                } else {
+                    res = await customApiFetch('POST', '/', state);
+                }
+
+                if (res && res.ok) {
+                    btn.textContent = 'âœ… Guardado';
+                    await loadCustomDevices();
+                    setTimeout(() => { closeBuilder(); }, 800);
+                } else {
+                    btn.textContent = 'âŒ Error al guardar';
+                    console.error(res);
+                }
+            } catch(e) {
+                btn.textContent = 'âŒ Error';
+                console.error(e);
+            } finally {
+                btn.disabled = false;
+                setTimeout(() => { btn.textContent = editingDeviceId ? 'âœï¸ Actualizar Equipo' : 'ðŸ’¾ Guardar en CatÃ¡logo'; }, 2000);
+            }
+        }
+
+        /* â”€â”€ Cargar catÃ¡logo de equipos custom â”€â”€ */
+        async function loadCustomDevices() {
+            const container = document.getElementById('custom-devices-list');
+            container.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Cargando...</div>';
+            try {
+                const res = await customApiFetch('GET', '/');
+                if (!res || !res.ok) {
+                    container.innerHTML = '<div class="text-[10px] text-red-400 text-center py-2">Error al cargar</div>';
+                    return;
+                }
+                const dispositivos = res.dispositivos || [];
+                if (dispositivos.length === 0) {
+                    container.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">NingÃºn equipo creado aÃºn</div>';
+                    return;
+                }
+                container.innerHTML = '';
+                dispositivos.forEach(dev => {
+                    const item = document.createElement('div');
+                    item.className = 'draggable-item custom-device-item';
+                    item.draggable = true;
+                    item.dataset.type = 'custom:' + dev._id;
+                    item.dataset.customId = dev._id;
+                    item.ondragstart = dragStartCustom;
+
+                    const typeLabels = { router:'RTR',switch:'SW',server:'SRV',firewall:'FW',ont:'ONT',nvr:'NVR',ups:'UPS',otro:'DEV' };
+                    const typeColors = { router:'#f59e0b',switch:'#22d3ee',server:'#94a3b8',firewall:'#ef4444',ont:'#10b981',nvr:'#a855f7',ups:'#f97316',otro:'#64748b' };
+
+                    const totalPorts = (dev.port_groups||[]).reduce((s,g)=>s+g.count,0);
+
+                    item.innerHTML = `
+                        <div class="device-badge" style="background:${dev.chassis_color||'#1e293b'};color:${typeColors[dev.tipo]||'#64748b'};border:1px solid ${typeColors[dev.tipo]||'#64748b'}55;font-size:8px;">
+                            ${typeLabels[dev.tipo]||'DEV'}
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div class="text-xs font-bold text-slate-200 truncate">${dev.nombre}</div>
+                            <div class="text-[10px] text-slate-400">${dev.chassis_units}U Â· ${totalPorts}p</div>
+                        </div>
+                        <button class="delete-custom-btn" title="Eliminar" onclick="deleteCustomDevice('${dev._id}', event)">âœ•</button>
+                    `;
+
+                    item.addEventListener('dblclick', () => openBuilder(dev));
+                    container.appendChild(item);
+                });
+                // Guardar catÃ¡logo en memoria para lookup al soltar
+                window._customDeviceCatalog = dispositivos.reduce((m,d) => { m[d._id] = d; return m; }, {});
+            } catch(e) {
+                console.error(e);
+                container.innerHTML = '<div class="text-[10px] text-red-400 text-center py-2">Error de conexiÃ³n</div>';
+            }
+        }
+
+        /* â”€â”€ Eliminar equipo custom â”€â”€ */
+        async function deleteCustomDevice(id, event) {
+            event.stopPropagation();
+            if (!confirm('Â¿Eliminar este equipo del catÃ¡logo?')) return;
+            await customApiFetch('DELETE', `/${id}`);
+            await loadCustomDevices();
+        }
+
+        /* â”€â”€ Drag & Drop para equipos custom â”€â”€ */
+        function dragStartCustom(event) {
+            event.dataTransfer.setData('itemType', this.dataset.type);
+            event.dataTransfer.setData('customId', this.dataset.customId);
+        }
+
+        /* â”€â”€ Crear equipo custom en un slot del rack â”€â”€ */
+        function createCustomDeviceInSlot(slotElement, cfg) {
+            deviceCounter++;
+            const deviceEl = renderCustomDeviceDOM(cfg, false);
+            deviceEl.id = `device-${deviceCounter}`;
+            deviceEl.dataset.deviceType = 'custom:' + cfg._id;
+            deviceEl.dataset.customId   = cfg._id;
+            slotElement.appendChild(deviceEl);
+            checkWorkspaceEmpty && checkWorkspaceEmpty();
+        }
+    </script>
+</body>
+</html>

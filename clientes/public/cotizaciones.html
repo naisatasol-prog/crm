@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cotizaciones — Portal Clientes</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <style>
+    .cot-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin-bottom: 14px;
+      display: flex; justify-content: space-between; align-items: center;
+      transition: var(--transition);
+    }
+    .cot-card:hover { border-color: var(--border-light); transform: translateX(3px); }
+    .cot-info .folio { font-size: 13px; color: var(--accent); font-weight: 600; }
+    .cot-info .titulo { font-size: 15px; font-weight: 600; margin: 4px 0; }
+    .cot-info .meta   { font-size: 12px; color: var(--text-secondary); }
+    .cot-right { text-align: right; }
+    .cot-total { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 700; }
+    .partida-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 13.5px; }
+    .partida-row:last-child { border-bottom: none; }
+    .totales-box { background: var(--bg-base); border-radius: var(--radius-sm); padding: 14px 18px; margin-top: 14px; }
+    .total-row { display: flex; justify-content: space-between; font-size: 13.5px; padding: 5px 0; }
+    .total-row.grand { font-weight: 700; font-size: 16px; color: var(--accent); border-top: 1px solid var(--border); margin-top: 5px; padding-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🖥️</div>
+        <div class="logo-text">Portal Tech <span id="empresa-nombre">Mi Empresa</span></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Menú</div>
+        <a class="nav-item" href="dashboard.html"><span class="nav-icon">⊞</span> Dashboard</a>
+        <a class="nav-item" href="topologia.html"><span class="nav-icon">📍</span> Topología</a>
+        <a class="nav-item" href="tickets.html"><span class="nav-icon">🎫</span> Mis Tickets</a>
+        <a class="nav-item active" href="cotizaciones.html"><span class="nav-icon">📄</span> Cotizaciones</a>
+      </div>
+      <div class="sidebar-section">
+        <a class="nav-item" href="#" id="logout-btn"><span class="nav-icon">🚪</span> Cerrar Sesión</a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div class="user-info">
+            <div class="u-name" id="user-name">Cargando...</div>
+            <div class="u-role">Cliente</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <div class="topbar-title">Cotizaciones <span>Propuestas recibidas</span></div>
+    </header>
+
+    <main class="main-content">
+      <div id="cotizaciones-list">
+        <div class="empty-state"><div class="empty-icon">📄</div><div class="empty-text">Cargando cotizaciones...</div></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal ver cotización -->
+  <div class="modal-overlay" id="modal-cot">
+    <div class="modal-box" style="width:min(600px,94vw);">
+      <div class="modal-header">
+        <h3 class="modal-title" id="cot-modal-title">Cotización</h3>
+        <button class="modal-close" id="close-cot">✕</button>
+      </div>
+      <div id="cot-modal-body"></div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const { apiFetch, getUser, logout, showToast, requireAuth } = window.auth;
+      requireAuth();
+      const user = getUser();
+      document.getElementById('user-name').textContent  = user?.nombre || '';
+      document.getElementById('user-avatar').textContent = user?.nombre?.[0]?.toUpperCase() || 'U';
+      document.getElementById('empresa-nombre').textContent = user?.cliente?.empresa || 'Mi Empresa';
+      document.getElementById('logout-btn').addEventListener('click', e => { e.preventDefault(); logout(); });
+
+      const modal    = document.getElementById('modal-cot');
+      const closeCot = document.getElementById('close-cot');
+      closeCot.addEventListener('click', () => modal.classList.remove('open'));
+      modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+
+      try {
+        const res = await apiFetch('/cotizaciones');
+        const cots = res.cotizaciones || [];
+        const container = document.getElementById('cotizaciones-list');
+
+        if (!cots.length) {
+          container.innerHTML = `<div class="empty-state"><div class="empty-icon">📄</div><div class="empty-text">No tienes cotizaciones aún</div></div>`;
+          return;
+        }
+
+        container.innerHTML = cots.map(c => `
+          <div class="cot-card">
+            <div class="cot-info">
+              <div class="folio">${c.folio}</div>
+              <div class="titulo">${c.titulo}</div>
+              <div class="meta">${new Date(c.createdAt).toLocaleDateString('es-MX')} · Válida ${c.validezDias} días</div>
+            </div>
+            <div class="cot-right">
+              <span class="badge ${badgeEstadoCot(c.estado)}" style="margin-bottom:8px;display:inline-flex">${c.estado}</span>
+              <div class="cot-total">$${c.total.toLocaleString('es-MX', {minimumFractionDigits:2})}</div>
+              <button class="btn btn-accent btn-sm" style="margin-top:10px" onclick="verCot('${c._id}')">Ver detalle</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) { showToast('Error: ' + err.message, 'error'); }
+
+      window.verCot = async (id) => {
+        try {
+          const res = await apiFetch('/cotizaciones/' + id);
+          const c   = res.cotizacion;
+          document.getElementById('cot-modal-title').textContent = `${c.folio} — ${c.titulo}`;
+          document.getElementById('cot-modal-body').innerHTML = `
+            <div style="margin-bottom:14px; font-size:13px; color:var(--text-secondary);">
+              Creada: ${new Date(c.createdAt).toLocaleDateString('es-MX')} · Validez: ${c.validezDias} días
+            </div>
+            <div>
+              ${c.partidas.map(p => `
+                <div class="partida-row">
+                  <span>${p.descripcion}</span>
+                  <span style="color:var(--text-secondary)">${p.cantidad} × $${p.precioUnit.toLocaleString('es-MX',{minimumFractionDigits:2})}</span>
+                  <strong>$${p.subtotal.toLocaleString('es-MX',{minimumFractionDigits:2})}</strong>
+                </div>
+              `).join('')}
+            </div>
+            <div class="totales-box">
+              <div class="total-row"><span>Subtotal</span><span>$${c.subtotal.toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>
+              <div class="total-row"><span>IVA 16%</span><span>$${c.iva.toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>
+              <div class="total-row grand"><span>TOTAL</span><span>$${c.total.toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>
+            </div>
+            ${c.notas ? `<div style="margin-top:14px; font-size:13px; color:var(--text-secondary);"><strong>Notas:</strong> ${c.notas}</div>` : ''}
+          `;
+          modal.classList.add('open');
+        } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      };
+    });
+
+    function badgeEstadoCot(e) {
+      return { borrador:'badge-muted', enviada:'badge-primary', aprobada:'badge-success', rechazada:'badge-danger', vencida:'badge-warning' }[e] || 'badge-muted';
+    }
+  </script>
+</body>
+</html>

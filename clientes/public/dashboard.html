@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Portal Clientes</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <style>
+    .welcome-banner {
+      background: linear-gradient(135deg, #0d2a5e, #0a1f42);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      display: flex; justify-content: space-between; align-items: center;
+      position: relative; overflow: hidden;
+    }
+    .welcome-banner::before {
+      content: '';
+      position: absolute; right: -30px; top: -30px;
+      width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(22,119,255,0.2), transparent 70%);
+      border-radius: 50%;
+    }
+    .welcome-banner h2 { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 700; }
+    .welcome-banner p  { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+    .welcome-icon { font-size: 48px; opacity: 0.8; position: relative; z-index: 1; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+
+    .ticket-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .ticket-row:last-child { border-bottom: none; }
+    .ticket-info .t-title { font-size: 13.5px; font-weight: 500; }
+    .ticket-info .t-meta  { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; }
+
+    .plan-card {
+      background: linear-gradient(135deg, rgba(22,119,255,0.15), rgba(0,212,255,0.08));
+      border: 1px solid rgba(22,119,255,0.3);
+      border-radius: var(--radius);
+      padding: 22px;
+    }
+    .plan-name { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: var(--accent); }
+    .plan-features { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .plan-feature { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .plan-feature::before { content: '✓'; color: var(--success); font-weight: 700; }
+
+    .activity-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.04); align-items: flex-start; }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+    .activity-dot.primary { background: var(--primary); box-shadow: 0 0 6px var(--primary); }
+    .activity-dot.success { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .activity-dot.warning { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
+    .activity-body .a-msg  { font-size: 13px; }
+    .activity-body .a-time { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🖥️</div>
+        <div class="logo-text">Portal Tech <span id="empresa-nombre">Mi Empresa</span></div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Menú</div>
+        <a class="nav-item active" href="dashboard.html"><span class="nav-icon">⊞</span> Dashboard</a>
+        <a class="nav-item" href="topologia.html"><span class="nav-icon">📍</span> Topología</a>
+        <a class="nav-item" href="tickets.html"><span class="nav-icon">🎫</span> Mis Tickets</a>
+        <a class="nav-item" href="cotizaciones.html">
+          <span class="nav-icon">📄</span> Cotizaciones
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Cuenta</div>
+        <a class="nav-item" href="#" id="logout-btn">
+          <span class="nav-icon">🚪</span> Cerrar Sesión
+        </a>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="user-chip" id="user-chip">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div class="user-info">
+            <div class="u-name" id="user-name">Cargando...</div>
+            <div class="u-role">Cliente</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-title">
+        Dashboard
+        <span id="topbar-fecha"></span>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="refresh-btn" title="Actualizar">🔄</button>
+        <button class="btn btn-primary btn-sm" onclick="window.location.href='tickets.html'">
+          + Nuevo Ticket
+        </button>
+      </div>
+    </header>
+
+    <!-- Contenido -->
+    <main class="main-content">
+      <!-- Banner bienvenida -->
+      <div class="welcome-banner">
+        <div>
+          <h2>¡Bienvenido, <span id="welcome-name">...</span>! 👋</h2>
+          <p>Aquí tienes un resumen del estado actual de tus servicios.</p>
+        </div>
+        <div class="welcome-icon">🖥️</div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-icon">🎫</span>
+          <div class="kpi-label">Tickets Abiertos</div>
+          <div class="kpi-value" id="kpi-abiertos">—</div>
+          <div class="kpi-sub">En proceso de atención</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-icon">⚙️</span>
+          <div class="kpi-label">En Proceso</div>
+          <div class="kpi-value" id="kpi-proceso">—</div>
+          <div class="kpi-sub">Siendo atendidos</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-icon">✅</span>
+          <div class="kpi-label">Resueltos</div>
+          <div class="kpi-value" id="kpi-resueltos">—</div>
+          <div class="kpi-sub">Este mes</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-icon">📄</span>
+          <div class="kpi-label">Cotizaciones</div>
+          <div class="kpi-value" id="kpi-cotizaciones">—</div>
+          <div class="kpi-sub">Total recibidas</div>
+        </div>
+      </div>
+
+      <!-- Grids inferiores -->
+      <div class="grid-2">
+        <!-- Tickets recientes -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🎫 Tickets Recientes</span>
+            <a href="tickets.html" class="btn btn-ghost btn-sm">Ver todos</a>
+          </div>
+          <div class="card-body" style="padding: 8px 20px;">
+            <div id="tickets-list">
+              <div class="empty-state"><div class="empty-icon">🎫</div><div class="empty-text">Sin tickets</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel derecho -->
+        <div style="display:flex; flex-direction:column; gap:20px;">
+          <!-- Plan activo -->
+          <div class="plan-card" id="plan-card">
+            <div class="kpi-label" style="margin-bottom:6px;">Plan Activo</div>
+            <div class="plan-name" id="plan-nombre">—</div>
+            <div class="plan-features" id="plan-features"></div>
+          </div>
+
+          <!-- Actividad -->
+          <div class="card">
+            <div class="card-header"><span class="card-title">🕐 Actividad Reciente</span></div>
+            <div class="card-body" style="padding: 8px 20px;">
+              <div id="activity-list">
+                <div class="activity-item">
+                  <div class="activity-dot primary"></div>
+                  <div class="activity-body"><div class="a-msg">Sesión iniciada</div><div class="a-time">Ahora</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

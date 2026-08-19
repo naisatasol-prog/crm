@@ -1,0 +1,111 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin â€” Plataforma Tech</title>
+  <meta name="description" content="Portal de administraciÃ³n de la plataforma de gestiÃ³n tecnolÃ³gica." />
+  <link rel="stylesheet" href="css/main.css" />
+  <style>
+    .particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .particle {
+      position: absolute; border-radius: 50%;
+      animation: float linear infinite; opacity: 0.3;
+    }
+    @keyframes float {
+      0%   { transform: translateY(100vh); opacity: 0; }
+      10%  { opacity: 0.3; }
+      90%  { opacity: 0.3; }
+      100% { transform: translateY(-10vh); opacity: 0; }
+    }
+    .grid-lines {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+      background-size: 52px 52px;
+    }
+    .auth-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,176,32,0.1); color: var(--warning);
+      border: 1px solid rgba(255,176,32,0.25);
+      padding: 4px 12px; border-radius: 20px; font-size: 11.5px; font-weight: 600;
+      margin-bottom: 14px;
+    }
+    #login-btn { width: 100%; margin-top: 6px; justify-content: center; padding: 12px; font-size: 15px; }
+    .error-msg {
+      color: var(--danger); font-size: 12.5px; display: none;
+      background: rgba(255,77,106,0.08); border: 1px solid rgba(255,77,106,0.2);
+      padding: 9px 14px; border-radius: var(--radius-sm); margin-bottom: 12px;
+    }
+    .server-info {
+      margin-top: 20px; text-align: center;
+      font-size: 11.5px; color: var(--text-muted);
+    }
+    .server-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--danger); margin-right: 5px; animation: pulse 1.5s ease infinite; }
+    .server-dot.online { background: var(--success); }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+  </style>
+</head>
+<body>
+  <div class="grid-lines"></div>
+  <div class="particles" id="particles"></div>
+
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="logo-circle" style="background:linear-gradient(135deg,#ff6b35,#ff4d6a);">ðŸ›¡ï¸</div>
+        <div class="auth-badge">ðŸ” Acceso Restringido</div>
+        <h1>Panel Admin</h1>
+        <p>Plataforma de GestiÃ³n TecnolÃ³gica</p>
+      </div>
+
+      <div class="error-msg" id="error-msg">âš ï¸ <span id="error-text"></span></div>
+
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label for="email">Correo del administrador</label>
+          <input id="email" type="email" class="form-control" placeholder="admin@empresa.com" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label for="password">ContraseÃ±a</label>
+          <input id="password" type="password" class="form-control" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-primary" id="login-btn" style="background:linear-gradient(135deg,#1677ff,#00c8ff)">
+          <span id="btn-text">Acceder al Panel</span>
+          <span id="btn-spin" style="display:none">â³</span>
+        </button>
+      </form>
+
+      <div class="server-info">
+        <span class="server-dot" id="server-dot"></span>
+        <span id="server-status">Verificando servidor...</span>
+        &nbsp;Â·&nbsp; Puerto 3009
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    // PartÃ­culas
+    const pContainer = document.getElementById('particles');
+    const colors = ['#1677ff','#00c8ff','#00c48c'];
+    for (let i = 0; i < 30; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = 1 + Math.random() * 4;
+      p.style.cssText = `left:${Math.random()*100}%;width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*3)]};animation-duration:${12+Math.random()*18}s;animation-delay:${Math.random()*20}s;`;
+      pContainer.appendChild(p);
+    }
+
+    // Verificar servidor
+    const dot    = document.getElementById('server-dot');
+    const status = document.getElementById('server-status');
+    fetch('https://simuladorrender.com/')
+      .then(() => { dot.classList.add('online'); status.textContent = 'Servidor en lÃ­nea'; })
+      .catch(() => { status.textContent = 'Servidor offline â€” inicia server.js'; });
+  </script>
+</body>
+</html>

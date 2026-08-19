@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catálogo de Equipos — Admin</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <style>
+    .grid-equipos {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 18px;
+      margin-top: 20px;
+    }
+    .equipo-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 15px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transition: var(--transition);
+    }
+    .equipo-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+    .equipo-img {
+      width: 72px;
+      height: 72px;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    .equipo-title { font-weight: 600; color: var(--text-primary); font-size: 14px; }
+    .equipo-type {
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: var(--bg-card2);
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .equipo-ports {
+      font-size: 11px;
+      color: #3b82f6;
+      font-weight: 600;
+    }
+    .equipo-actions { margin-top: 8px; }
+    .catalog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .catalog-header h2 { font-size: 20px; font-weight: 700; }
+    .catalog-header p { color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon" style="background:linear-gradient(135deg,#ff6b35,#ff4d6a);">🛡️</div>
+        <div class="logo-text">Panel Admin <span>Gestión Tech</span></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Principal</div>
+        <a class="nav-item" href="dashboard.html"><span class="nav-icon">⊞</span> Dashboard</a>
+        <a class="nav-item" href="clientes.html"><span class="nav-icon">👥</span> Clientes</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Operaciones</div>
+        <a class="nav-item" href="topologia.html"><span class="nav-icon">📍</span> Topología</a>
+        <a class="nav-item" href="tickets.html"><span class="nav-icon">🎫</span> Tickets</a>
+        <a class="nav-item" href="cotizaciones.html"><span class="nav-icon">📄</span> Cotizaciones</a>
+        <a class="nav-item active" href="equipos.html"><span class="nav-icon">🖥️</span> Equipos</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Configuración</div>
+        <a class="nav-item" href="configuracion.html"><span class="nav-icon">⚙️</span> Configuración de Puertos</a>
+      </div>
+      <div class="sidebar-section">
+        <a class="nav-item" href="#" id="logout-btn"><span class="nav-icon">🚪</span> Salir</a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar" id="user-avatar">A</div>
+          <div class="user-info">
+            <div class="u-name" id="user-name">Cargando...</div>
+            <div class="u-role">Administrador</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <div class="topbar-title">Catálogo <span>de Equipos</span></div>
+      <div class="topbar-actions">
+        <input type="text" id="search-equipo" placeholder="🔍 Buscar..." style="padding: 7px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 13px; outline: none; background: var(--bg-card2);" />
+        <button class="btn btn-primary" id="btn-add-equipo">+ Nuevo Equipo</button>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="catalog-header">
+        <div>
+          <h2>Catálogo Global de Equipos</h2>
+          <p>Registra los modelos de equipos con su imagen. Se usarán en los diagramas de Topología.</p>
+        </div>
+      </div>
+
+      <div class="grid-equipos" id="grid-equipos">
+        <!-- Equipos cargados dinámicamente -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal Nuevo Equipo -->
+  <div class="modal-overlay" id="modal-equipo">
+    <div class="modal-box" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Registrar Equipo al Catálogo</h3>
+        <button class="modal-close" id="close-equipo">✕</button>
+      </div>
+      <form id="form-equipo">
+        <div class="form-group">
+          <label>Nombre / Modelo</label>
+          <input type="text" class="form-control" id="e-nombre" placeholder="Ej. Switch Cisco Catalyst 24p" required />
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select class="form-control" id="e-tipo">
+            <option value="Internet">Nube / Internet</option>
+            <option value="Firewall">Firewall</option>
+            <option value="Router">Router</option>
+            <option value="Switch">Switch</option>
+            <option value="AP">Access Point</option>
+            <option value="Patch Panel">Patch Panel</option>
+            <option value="Gabinete">Gabinete / Rack</option>
+            <option value="Cliente">Cliente (PC/Cámara)</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <!-- Puertos: se muestra cuando el tipo los tiene -->
+        <div id="ports-config" style="background:var(--bg-card2);border-radius:8px;padding:12px;border:1px solid var(--border);margin-bottom:0;">
+          <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;">🔌 Configuración de Puertos</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label style="font-size:11px;">Número de Puertos</label>
+              <input type="number" class="form-control" id="e-num-puertos" min="0" max="96" value="24" placeholder="Ej. 24" />
+              <small style="color:var(--text-muted);font-size:10px;">Pon 0 si no aplica</small>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label style="font-size:11px;">Velocidad de Puertos</label>
+              <select class="form-control" id="e-capacidad">
+                <option value="100M">100 Mbps (Fast Ethernet)</option>
+                <option value="1G" selected>1 Gbps (Gigabit)</option>
+                <option value="2.5G">2.5 Gbps</option>
+                <option value="10G">10 Gbps (SFP+)</option>
+                <option value="mixto">Mixto (varios tipos)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Fotografía del Equipo</label>
+          <input type="file" class="form-control" id="e-imagen" accept="image/*" />
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+          <button type="button" class="btn btn-ghost" id="close-equipo-2">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+  <script src="js/auth.js" defer></script>
+  <script src="js/equipos.js" defer></script>
+</body>
+</html>
+

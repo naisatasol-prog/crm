@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clientes — Admin</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <style>
+    .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon" style="background:linear-gradient(135deg,#ff6b35,#ff4d6a);">🛡️</div>
+        <div class="logo-text">Panel Admin <span>Gestión Tech</span></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Principal</div>
+        <a class="nav-item" href="dashboard.html"><span class="nav-icon">⊞</span> Dashboard</a>
+        <a class="nav-item active" href="clientes.html"><span class="nav-icon">👥</span> Clientes</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Operaciones</div>
+        <a class="nav-item" href="topologia.html"><span class="nav-icon">📍</span> Topología</a>
+        <a class="nav-item" href="tickets.html"><span class="nav-icon">🎫</span> Tickets</a>
+        <a class="nav-item" href="cotizaciones.html"><span class="nav-icon">📄</span> Cotizaciones</a>
+        <a class="nav-item" href="equipos.html"><span class="nav-icon">🖥️</span> Equipos</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Configuración</div>
+        <a class="nav-item" href="configuracion.html"><span class="nav-icon">⚙️</span> Configuración de Puertos</a>
+      </div>
+      <div class="sidebar-section">
+        <a class="nav-item" href="#" id="logout-btn"><span class="nav-icon">🚪</span> Salir</a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar" id="user-avatar">A</div>
+          <div class="user-info">
+            <div class="u-name" id="user-name">Cargando...</div>
+            <div class="u-role">Administrador</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <div class="topbar-title">Clientes <span>Gestión de empresas</span></div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary btn-sm" id="btn-nuevo-cliente">+ Nuevo Cliente</button>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="filter-bar">
+        <input type="text" class="form-control" id="search-input" placeholder="🔍 Buscar cliente..." style="max-width:300px" />
+      </div>
+
+      <div class="card">
+        <div class="card-body table-wrap">
+          <table id="clientes-table">
+            <thead>
+              <tr>
+                <th>Empresa</th>
+                <th>Contacto</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Plan</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="clientes-tbody">
+              <tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal Nuevo/Editar Cliente -->
+  <div class="modal-overlay" id="modal-cliente">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Registrar Cliente</h3>
+        <button class="modal-close" id="close-modal">✕</button>
+      </div>
+      <form id="form-cliente" novalidate>
+        <input type="hidden" id="c-id" />
+        <div class="form-group">
+          <label>Nombre de la Empresa</label>
+          <input type="text" class="form-control" id="c-empresa" required />
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label>Contacto Principal</label>
+            <input type="text" class="form-control" id="c-contacto" required />
+          </div>
+          <div class="form-group">
+            <label>Email (para facturación y alertas)</label>
+            <input type="email" class="form-control" id="c-email" />
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label>Teléfono</label>
+            <input type="text" class="form-control" id="c-telefono" />
+          </div>
+          <div class="form-group">
+            <label>Plan Asignado</label>
+            <select class="form-control" id="c-plan">
+              <option value="basico">Básico</option>
+              <option value="profesional">Profesional</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select class="form-control" id="c-estado">
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+            <option value="suspendido">Suspendido</option>
+          </select>
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+          <button type="button" class="btn btn-ghost" id="cancel-btn">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+  <script src="js/auth.js" defer></script>
+  <script src="js/clientes.js" defer></script>
+</body>
+</html>
+

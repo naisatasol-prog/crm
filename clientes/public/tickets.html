@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mis Tickets — Portal Clientes</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <style>
+    .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+    .filter-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 13px; transition: var(--transition); font-family: inherit; }
+    .filter-btn:hover, .filter-btn.active { background: var(--primary-glow); color: var(--primary); border-color: rgba(22,119,255,0.4); }
+    .filter-search { flex: 1; min-width: 200px; }
+    .prioridad-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .p-baja    { background: var(--success); }
+    .p-media   { background: var(--warning); }
+    .p-alta    { background: #ff6b35; }
+    .p-critica { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+    .thread { background: var(--bg-base); border-radius: var(--radius-sm); padding: 16px; max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .msg-bubble { max-width: 80%; }
+    .msg-bubble.admin { align-self: flex-start; }
+    .msg-bubble.cliente { align-self: flex-end; }
+    .msg-content {
+      padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.5;
+    }
+    .msg-bubble.admin .msg-content { background: var(--bg-card2); border-bottom-left-radius: 4px; }
+    .msg-bubble.cliente .msg-content { background: rgba(22,119,255,0.2); border-bottom-right-radius: 4px; border: 1px solid rgba(22,119,255,0.3); }
+    .msg-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .msg-bubble.cliente .msg-meta { text-align: right; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🖥️</div>
+        <div class="logo-text">Portal Tech <span id="empresa-nombre">Mi Empresa</span></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Menú</div>
+        <a class="nav-item" href="dashboard.html"><span class="nav-icon">⊞</span> Dashboard</a>
+        <a class="nav-item" href="topologia.html"><span class="nav-icon">📍</span> Topología</a>
+        <a class="nav-item active" href="tickets.html"><span class="nav-icon">🎫</span> Mis Tickets</a>
+        <a class="nav-item" href="cotizaciones.html"><span class="nav-icon">📄</span> Cotizaciones</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Cuenta</div>
+        <a class="nav-item" href="#" id="logout-btn"><span class="nav-icon">🚪</span> Cerrar Sesión</a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div class="user-info">
+            <div class="u-name" id="user-name">Cargando...</div>
+            <div class="u-role">Cliente</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-title">Mis Tickets <span>Soporte técnico</span></div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary btn-sm" id="btn-nuevo-ticket">+ Nuevo Ticket</button>
+      </div>
+    </header>
+
+    <!-- Contenido -->
+    <main class="main-content">
+      <!-- Filtros -->
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="todos">Todos</button>
+        <button class="filter-btn" data-filter="abierto">Abiertos</button>
+        <button class="filter-btn" data-filter="en_proceso">En Proceso</button>
+        <button class="filter-btn" data-filter="resuelto">Resueltos</button>
+        <input type="text" class="form-control filter-search" id="search-input" placeholder="🔍 Buscar ticket..." />
+      </div>
+
+      <!-- Tabla -->
+      <div class="card">
+        <div class="card-body table-wrap">
+          <table id="tickets-table">
+            <thead>
+              <tr>
+                <th>Folio</th>
+                <th>Título</th>
+                <th>Categoría</th>
+                <th>Prioridad</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tickets-tbody">
+              <tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal Nuevo Ticket -->
+  <div class="modal-overlay" id="modal-ticket">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">🎫 Nuevo Ticket de Soporte</h3>
+        <button class="modal-close" id="close-modal-ticket">✕</button>
+      </div>
+      <form id="form-ticket" novalidate>
+        <div class="form-group">
+          <label>Título del problema</label>
+          <input type="text" class="form-control" id="t-titulo" placeholder="Describe brevemente el problema" required />
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div class="form-group">
+            <label>Categoría</label>
+            <select class="form-control" id="t-categoria">
+              <option value="soporte">Soporte General</option>
+              <option value="red">Red / Conectividad</option>
+              <option value="software">Software</option>
+              <option value="hardware">Hardware</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Prioridad</label>
+            <select class="form-control" id="t-prioridad">
+              <option value="baja">🟢 Baja</option>
+              <option value="media" selected>🟡 Media</option>
+              <option value="alta">🟠 Alta</option>
+              <option value="critica">🔴 Crítica</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descripción detallada</label>
+          <textarea class="form-control" id="t-descripcion" rows="4" placeholder="Describe el problema con el mayor detalle posible..." required></textarea>
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" id="cancel-ticket">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Enviar Ticket</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Ver Ticket -->
+  <div class="modal-overlay" id="modal-ver-ticket">
+    <div class="modal-box" style="width:min(640px,94vw);">
+      <div class="modal-header">
+        <h3 class="modal-title" id="ver-ticket-title">Ver Ticket</h3>
+        <button class="modal-close" id="close-modal-ver">✕</button>
+      </div>
+      <div id="ver-ticket-body"></div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+  <script src="js/auth.js"></script>
+  <script src="js/tickets.js"></script>
+</body>
+</html>

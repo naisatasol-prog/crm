@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Topología — Portal Clientes</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <style>
+    .tree-container { background: var(--bg-card); border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); }
+    
+    .tree-org { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    
+    .tree-node-sitio { margin-left: 20px; border-left: 2px solid var(--border); padding-left: 18px; position: relative; margin-bottom: 20px; }
+    .tree-node-sitio::before { content: ''; position: absolute; left: -2px; top: 12px; width: 14px; height: 2px; background: var(--border); }
+    
+    .sitio-header { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card2); padding: 12px 18px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+    .sitio-title { font-weight: 600; font-size: 15px; color: var(--accent); }
+    
+    .tree-areas { margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    
+    .area-card { background: var(--bg-surface); border: 1px solid var(--border); padding: 14px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center; transition: var(--transition); }
+    .area-card:hover { border-color: var(--primary); box-shadow: var(--shadow-glow); }
+    .area-info .a-tipo { font-size: 11px; font-weight: 600; background: rgba(22,119,255,0.1); color: var(--primary); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 4px; }
+    .area-info .a-nombre { font-size: 14px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🖥️</div>
+        <div class="logo-text">Portal Tech <span id="empresa-nombre">Mi Empresa</span></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Menú</div>
+        <a class="nav-item" href="dashboard.html"><span class="nav-icon">⊞</span> Dashboard</a>
+        <a class="nav-item active" href="topologia.html"><span class="nav-icon">📍</span> Topología</a>
+        <a class="nav-item" href="tickets.html"><span class="nav-icon">🎫</span> Mis Tickets</a>
+        <a class="nav-item" href="cotizaciones.html"><span class="nav-icon">📄</span> Cotizaciones</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Cuenta</div>
+        <a class="nav-item" href="#" id="logout-btn"><span class="nav-icon">🚪</span> Cerrar Sesión</a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div class="user-info">
+            <div class="u-name" id="user-name">Cargando...</div>
+            <div class="u-role">Cliente</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <div class="topbar-title">Topología de Red <span>Visión general de infraestructura</span></div>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="refresh-btn" title="Actualizar">🔄</button>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div id="tree-root">
+        <div class="empty-state"><div class="empty-icon">📍</div><div class="empty-text">Cargando tu topología de red...</div></div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+  <script src="js/auth.js"></script>
+  <script src="js/topologia.js"></script>
+</body>
+</html>

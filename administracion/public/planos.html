@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Planos del Sitio — Admin</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <style>
+    .planos-layout { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    
+    .planos-topbar { background: var(--bg-card); padding: 12px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+    
+    .planos-topbar-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .planos-topbar-title span { font-size: 13px; font-weight: 500; color: var(--text-muted); padding-left: 8px; border-left: 1px solid var(--border); }
+    
+    .planos-topbar-actions { display: flex; gap: 10px; align-items: center; }
+    
+    .planos-workspace { display: flex; flex: 1; overflow: hidden; position: relative; background: #e2e8f0; }
+    
+    .planos-sidebar { width: 280px; background: var(--bg-card); border-right: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; }
+    
+    .planos-sidebar-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    
+    .plano-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .plano-item { padding: 12px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; transition: 0.2s; background: var(--bg-surface); display: flex; justify-content: space-between; align-items: center; }
+    .plano-item:hover { border-color: var(--primary); }
+    .plano-item.active { background: rgba(22,119,255,0.1); border-color: var(--primary); font-weight: 600; }
+    
+    .plano-canvas-wrapper { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 0; }
+    
+    .plano-container { position: relative; box-shadow: var(--shadow-md); background: white; cursor: crosshair; }
+    .plano-container img { display: block; max-width: 100%; height: auto; pointer-events: none; }
+    
+    .marcador { position: absolute; transform: translate(-50%, -100%); cursor: pointer; display: flex; flex-direction: column; align-items: center; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.3)); z-index: 5; transition: transform 0.2s; }
+    .marcador:hover { transform: translate(-50%, -100%) scale(1.1); z-index: 10; }
+    .marcador-icon { font-size: 24px; line-height: 1; }
+    .marcador-label { background: rgba(0,0,0,0.8); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; margin-top: -2px; pointer-events: none; }
+    
+    .marcador-tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 8px; box-shadow: var(--shadow-lg); font-size: 12px; pointer-events: none; opacity: 0; transition: 0.2s; white-space: nowrap; margin-bottom: 8px; z-index: 20; color: var(--text-primary); }
+    .marcador:hover .marcador-tooltip { opacity: 1; }
+    .marcador-tooltip strong { display: block; color: var(--accent); }
+    
+    /* Drawer de detalles del marcador */
+    .marcador-drawer { position: absolute; right: -350px; top: 0; bottom: 0; width: 350px; background: var(--bg-card); box-shadow: -4px 0 15px rgba(0,0,0,0.1); transition: 0.3s ease; z-index: 100; display: flex; flex-direction: column; }
+    .marcador-drawer.open { right: 0; }
+    
+    .drawer-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg-card2); }
+    .drawer-title { font-weight: 600; font-size: 16px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+    
+    .drawer-body { padding: 20px; flex: 1; overflow-y: auto; }
+    
+    .btn-back { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 500; transition: color 0.2s; }
+    .btn-back:hover { color: var(--primary); }
+
+    @keyframes ripple-anim {
+      0% { transform: scale(0); opacity: 0.8; }
+      100% { transform: scale(3); opacity: 0; }
+    }
+    
+    @keyframes ap-waves {
+      0% { transform: scale(0.8); opacity: 1; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+
+    @keyframes node-blink {
+      0%, 100% { fill: #10b981; }
+      50% { fill: #ffffff; }
+    }
+  </style>
+</head>
+<body>
+  <div class="planos-layout">
+    
+    <header class="planos-topbar">
+      <div style="display:flex; align-items:center; gap:20px;">
+        <a href="topologia.html" class="btn-back">← Volver a Topología</a>
+        <div class="planos-topbar-title">🗺️ Planos del Sitio <span id="sitio-nombre">Cargando...</span></div>
+      </div>
+      <div class="planos-topbar-actions">
+        <button class="btn btn-sm" id="btn-zoom-in">🔍 +</button>
+        <button class="btn btn-sm" id="btn-zoom-out">🔍 -</button>
+        <button class="btn btn-sm" id="btn-zoom-reset">⊡ Ajustar</button>
+      </div>
+    </header>
+
+    <div class="planos-workspace">
+      
+      <div class="planos-sidebar">
+        <div class="planos-sidebar-header">
+          <h4 style="margin:0; font-size:14px; color:var(--text-secondary);">Planos Disponibles</h4>
+          <button class="btn btn-primary btn-sm" id="btn-add-plano">+ Plano</button>
+        </div>
+        <div class="plano-list" id="plano-list">
+          <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Cargando planos...</div>
+        </div>
+      </div>
+
+      <div class="plano-canvas-wrapper" id="canvas-wrapper">
+        <div class="empty-state" id="empty-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;">
+          <div class="empty-icon">🗺️</div>
+          <div class="empty-text" style="text-align:center; color:var(--text-muted);">No hay planos disponibles para este sitio.<br>Haz clic en <strong>+ Plano</strong> para subir uno.</div>
+        </div>
+        
+        <div class="plano-container" id="plano-container" style="display:none; transform-origin: 0 0; position:relative; will-change: transform;">
+          <img id="plano-img" src="" alt="Plano" style="display:block; max-width:none; transform-origin: top left;">
+          <canvas id="plano-canvas" style="display:none; max-width:none; transform-origin: top left;"></canvas>
+          <div id="marcadores-layer" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;"></div>
+        </div>
+      </div>
+      
+      <!-- Drawer de Marcador -->
+      <div class="marcador-drawer" id="marcador-drawer">
+        <div class="drawer-header">
+          <div class="drawer-title" id="drawer-title">📍 Marcador</div>
+          <div style="display:flex;gap:5px;">
+            <button class="btn btn-ghost btn-sm" id="btn-edit-marcador" title="Editar">✏️</button>
+            <button class="btn btn-ghost btn-sm" id="btn-delete-marcador" title="Eliminar" style="color:var(--danger);">🗑️</button>
+            <button class="modal-close" id="drawer-close" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+          </div>
+        </div>
+        <div class="drawer-body">
+          <div class="info-grid" style="display:flex; flex-direction:column; gap:15px;">
+            <div class="info-item"><label style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Tipo</label><div id="drawer-tipo" style="font-weight:500;">—</div></div>
+            <div class="info-item"><label style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Detalles</label><div id="drawer-detalles" style="font-size:13px; color:var(--text-secondary); white-space:pre-wrap;">—</div></div>
+            <div class="info-item">
+              <label style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Foto de Instalación</label>
+              <div id="drawer-foto-container" style="margin-top:8px;">
+                <img id="drawer-foto" src="" style="width:100%; border-radius:6px; cursor:zoom-in; border:1px solid var(--border); display:none;" onclick="abrirFoto(this.src)">
+                <div id="drawer-foto-empty" style="padding:15px; background:var(--bg-surface); border:1px dashed var(--border); border-radius:6px; text-align:center; font-size:12px; color:var(--text-muted);">Sin foto disponible</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal Agregar Plano -->
+  <div class="modal-overlay" id="modal-plano">
+    <div class="modal-box">
+      <div class="modal-header"><h3 class="modal-title">Subir Nuevo Plano</h3><button class="modal-close" id="close-plano">✕</button></div>
+      <form id="form-plano">
+        <div class="form-group">
+          <label>Nombre del Plano</label>
+          <input type="text" class="form-control" id="p-nombre" placeholder="Ej. Planta Baja" required />
+        </div>
+        <div class="form-group">
+          <label>Imagen del Plano</label>
+          <input type="file" class="form-control" id="p-imagen" accept="image/*,application/pdf" required />
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;"><button type="submit" class="btn btn-primary">Subir Plano</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Agregar/Editar Marcador -->
+  <div class="modal-overlay" id="modal-marcador">
+    <div class="modal-box">
+      <div class="modal-header"><h3 class="modal-title" id="modal-marcador-title">Agregar Punto</h3><button class="modal-close" id="close-marcador">✕</button></div>
+      <form id="form-marcador">
+        <input type="hidden" id="m-id">
+        <input type="hidden" id="m-x">
+        <input type="hidden" id="m-y">
+        <div class="form-group">
+          <label>Tipo de Dispositivo/Punto</label>
+          <select class="form-control" id="m-tipo">
+            <option value="AP">AP (Access Point)</option>
+            <option value="Cámara">Cámara CCTV</option>
+            <option value="Nodo">Nodo de Red</option>
+            <option value="Cuarto">Cuarto (IDF/MDF)</option>
+            <option value="Enlace">Enlace Inalámbrico</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group" id="group-angulo" style="display:none;">
+          <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:15px;">
+            <div style="flex:1; min-width:150px;">
+              <label>Dirección de Visión (Orientación)</label>
+              <input type="range" class="form-control" id="m-angulo" min="0" max="360" value="0" />
+              <div style="text-align:right; font-size:11px; color:var(--text-muted);"><span id="angulo-val">0</span>°</div>
+            </div>
+            <div style="flex:1; min-width:150px;">
+              <label>Apertura Visual (FOV)</label>
+              <input type="range" class="form-control" id="m-fov" min="30" max="180" value="90" />
+              <div style="text-align:right; font-size:11px; color:var(--text-muted);"><span id="fov-val">90</span>°</div>
+            </div>
+          </div>
+          <div style="display:flex; justify-content:center;">
+            <div id="preview-camara-container" style="width:60px; height:60px; display:flex; justify-content:center; align-items:center; background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; box-shadow:inset 0 2px 4px rgba(0,0,0,0.05);">
+              <!-- El SVG se inyectará aquí en tiempo real -->
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Nombre Identificador</label>
+          <input type="text" class="form-control" id="m-nombre" placeholder="Ej. AP Recepción" required />
+        </div>
+        <div class="form-group">
+          <label>Detalles / Notas (Opcional)</label>
+          <textarea class="form-control" id="m-detalles" rows="3" placeholder="MAC Address, IP, altura, etc."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Foto Real (Opcional)</label>
+          <input type="file" class="form-control" id="m-foto" accept="image/*" />
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;"><button type="submit" class="btn btn-primary">Guardar</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lightbox para Fotos -->
+  <div class="modal-overlay" id="lightbox-modal" style="z-index: 2000; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center;">
+    <button id="lightbox-close" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: white; font-size: 30px; cursor: pointer;">✕</button>
+    <img id="lightbox-img" src="" style="max-width: 90%; max-height: 90vh; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/planos.js" defer></script>
+</body>
+</html>
+

@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuración de Puertos — Admin</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <style>
+    .config-container { padding: 24px 28px; }
+
+    .filter-bar {
+      display: flex; gap: 15px; margin-bottom: 25px;
+      background: #fff; padding: 15px; border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      align-items: center;
+    }
+
+    /* ── Tabs ── */
+    .tabs-container { display: flex; gap: 6px; padding: 16px 28px 0; flex-wrap: wrap; }
+    .config-tab {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px; border-radius: 8px 8px 0 0;
+      font-size: 13px; font-weight: 600;
+      color: var(--text-secondary);
+      border: 1px solid transparent; border-bottom: none;
+      cursor: pointer; text-decoration: none;
+      transition: all .18s ease;
+      background: var(--bg-card2);
+    }
+    .config-tab:hover { color: var(--primary); background: #fff; }
+    .config-tab.active {
+      color: var(--primary);
+      background: #fff;
+      border-color: var(--border);
+      border-bottom-color: #fff;
+      position: relative; z-index: 2;
+    }
+    .config-tab.tab-vlan.active { color: #7c3aed; border-color: var(--border); border-bottom-color: #fff; }
+    .config-tab.tab-vlan:hover { color: #7c3aed; background: #fff; }
+    .tabs-border {
+      border-bottom: 1px solid var(--border);
+      margin: 0 28px 0;
+      position: relative; top: -1px;
+    }
+
+    /* ── Equipo cards ── */
+    .equipo-card {
+      background: #fff; border-radius: 12px; padding: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      margin-bottom: 20px; border: 1px solid var(--border);
+    }
+    .equipo-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border);
+    }
+    .equipo-info { display: flex; align-items: center; gap: 15px; }
+    .equipo-img { width: 50px; height: 50px; object-fit: contain; }
+    .equipo-name { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+    .equipo-type { font-size: 12px; color: var(--primary); font-weight: 600; }
+
+    .ports-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+
+    .port-item {
+      width: 54px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+      cursor: pointer; position: relative;
+    }
+    .port-number { font-size: 11px; color: var(--text-secondary); font-weight: 600; }
+    .port-icon {
+      width: 42px; height: 34px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; transition: all .2s;
+    }
+    .port-icon::before {
+      content: ''; position: absolute; bottom: 0; width: 14px; height: 6px;
+      background: #fff; border-top-left-radius: 4px; border-top-right-radius: 4px;
+    }
+    .port-label { font-size: 10px; font-weight: 700; color: #fff; z-index: 1; margin-bottom: 2px;}
+
+    /* Puerto estados */
+    .state-offline .port-icon { background: #cbd5e1; }
+    .state-100m   .port-icon  { background: #eab308; }
+    .state-1000m  .port-icon  { background: #22c55e; }
+    .state-fast   .port-icon  { background: #3b82f6; }
+
+    .port-item:hover .port-icon { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+
+    /* VLAN badge sobre el puerto */
+    .port-vlan-badge {
+      font-size: 9px; font-weight: 700; padding: 1px 4px;
+      border-radius: 3px; color: #fff; max-width: 50px;
+      text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .port-vlan-badge.badge-access { background: #7c3aed; }
+    .port-vlan-badge.badge-trunk  { background: #ea580c; }
+
+    /* Ícono de conexión */
+    .port-conn-icon { font-size: 9px; }
+
+    .legend {
+      display: flex; gap: 20px; margin-top: 20px; padding-top: 15px;
+      border-top: 1px dashed var(--border); font-size: 12px; color: var(--text-secondary);
+      flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-color { width: 12px; height: 12px; border-radius: 3px; }
+    .bg-offline { background: #cbd5e1; }
+    .bg-100m    { background: #eab308; }
+    .bg-1000m   { background: #22c55e; }
+    .bg-fast    { background: #3b82f6; }
+
+    /* ── Panel de VLANs ── */
+    #panel-vlans { display: none; }
+    #panel-vlans.active { display: block; }
+    #panel-equipos.hidden { display: none; }
+
+    .vlan-table-wrap { background: #fff; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+    .vlan-table-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+    }
+    .vlan-row {
+      display: flex; align-items: center; gap: 16px;
+      padding: 12px 20px; border-bottom: 1px solid rgba(0,0,0,0.04);
+      transition: background .15s;
+    }
+    .vlan-row:last-child { border-bottom: none; }
+    .vlan-row:hover { background: var(--bg-card2); }
+    .vlan-chip {
+      width: 44px; height: 22px; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: #fff;
+    }
+    .vlan-id   { font-size: 15px; font-weight: 700; width: 50px; }
+    .vlan-name { flex: 1; font-size: 14px; }
+
+    /* ── Modal expandido ── */
+    .modal-section-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-muted);
+      margin: 18px 0 10px; padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-section-title:first-child { margin-top: 4px; }
+
+    .conn-options { display: flex; gap: 8px; flex-wrap: wrap; }
+    .conn-opt {
+      flex: 1; min-width: 100px;
+      border: 2px solid var(--border); border-radius: 8px;
+      padding: 10px 8px; text-align: center;
+      cursor: pointer; font-size: 12px; font-weight: 600;
+      color: var(--text-secondary); transition: all .18s;
+      background: var(--bg-base);
+    }
+    .conn-opt:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-glow); }
+    .conn-opt.selected { border-color: var(--primary); color: var(--primary); background: var(--primary-glow); }
+    .conn-opt .conn-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+
+    .vlan-mode-opts { display: flex; gap: 8px; }
+    .vlan-mode-btn {
+      flex: 1; padding: 8px; border: 2px solid var(--border);
+      border-radius: 8px; text-align: center; cursor: pointer;
+      font-size: 12px; font-weight: 700; color: var(--text-secondary);
+      background: var(--bg-base); transition: all .18s;
+    }
+    .vlan-mode-btn:hover { border-color: #7c3aed; color: #7c3aed; }
+    .vlan-mode-btn.selected { border-color: #7c3aed; color: #7c3aed; background: rgba(124,58,237,0.08); }
+
+    .vlan-trunk-grid {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+      max-height: 160px; overflow-y: auto; padding: 4px;
+    }
+    .vlan-check-item {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 10px; border-radius: 6px;
+      border: 1px solid var(--border); cursor: pointer;
+      font-size: 12px; font-weight: 600; transition: all .15s;
+      background: var(--bg-base);
+    }
+    .vlan-check-item.checked {
+      border-color: #7c3aed; background: rgba(124,58,237,0.08); color: #7c3aed;
+    }
+    .vlan-check-item input { display: none; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon" style="background:linear-gradient(135deg,#ff6b35,#ff4d6a);">🛡️</div>
+        <div class="logo-text">Panel Admin <span>Gestión Tech</span></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Principal</div>
+        <a class="nav-item" href="index.html"><span class="nav-icon">⊞</span> Dashboard</a>
+        <a class="nav-item" href="clientes.html"><span class="nav-icon">👥</span> Clientes</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Operaciones</div>
+        <a class="nav-item" href="topologia.html"><span class="nav-icon">📍</span> Topología</a>
+        <a class="nav-item" href="tickets.html"><span class="nav-icon">🎫</span> Tickets</a>
+        <a class="nav-item" href="cotizaciones.html"><span class="nav-icon">📄</span> Cotizaciones</a>
+        <a class="nav-item" href="equipos.html"><span class="nav-icon">🖥️</span> Equipos</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Configuración</div>
+        <a class="nav-item active" href="configuracion.html"><span class="nav-icon">⚙️</span> Configuración de Puertos</a>
+      </div>
+      <div class="sidebar-section">
+        <a class="nav-item" href="#" id="logout-btn"><span class="nav-icon">🚪</span> Salir</a>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar" id="user-avatar">A</div>
+          <div class="user-info">
+            <div class="u-name" id="user-name">Cargando...</div>
+            <div class="u-role">Administrador</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main style="padding:0; display:flex; flex-direction:column; grid-column: 2; overflow: hidden; height: 100vh;">
+      <!-- Topbar fijo -->
+      <header class="topbar" style="min-height:64px; padding: 0 28px; flex-shrink: 0;">
+        <h2 class="topbar-title">Configuración de Interfaces <span>Puertos de Equipos</span></h2>
+      </header>
+
+      <!-- Tabs fijos -->
+      <div class="tabs-container" style="flex-shrink: 0;">
+        <a href="#" class="config-tab" data-type="Firewall">🛡️ Firewall</a>
+        <a href="#" class="config-tab" data-type="Router">📡 Router</a>
+        <a href="#" class="config-tab active" data-type="Switch">⚙️ Switch</a>
+        <a href="#" class="config-tab" data-type="AP">📶 AP</a>
+        <a href="#" class="config-tab" data-type="Patch Panel">🔲 Patch Panel</a>
+        <a href="#" class="config-tab" data-type="Internet">🌐 Internet</a>
+        <a href="#" class="config-tab" data-type="Otro">🖥️ Otro</a>
+        <a href="#" class="config-tab tab-vlan" data-type="__vlans__">🏷️ VLANs</a>
+      </div>
+      <div class="tabs-border" style="flex-shrink: 0;"></div>
+
+      <!-- Zona scrolleable -->
+      <div style="flex: 1; overflow-y: auto;">
+        <div class="config-container">
+
+          <!-- Filter bar (se oculta en panel VLANs) -->
+          <div class="filter-bar" id="filter-bar">
+            <div style="flex:1;">
+              <label style="font-size:12px;color:var(--text-secondary);font-weight:600;display:block;margin-bottom:4px;">1. Seleccionar Organización</label>
+              <select id="sel-cliente" class="form-control" style="width:100%;"><option value="">Cargando clientes...</option></select>
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:12px;color:var(--text-secondary);font-weight:600;display:block;margin-bottom:4px;">2. Seleccionar Sitio</label>
+              <select id="sel-sitio" class="form-control" style="width:100%;"><option value="">Primero seleccione un cliente</option></select>
+            </div>
+            <div style="margin-left:auto; display:flex; align-items:flex-end;">
+              <button class="btn btn-primary" id="btn-save-all">💾 Guardar Cambios</button>
+            </div>
+          </div>
+
+          <!-- Panel Equipos -->
+          <div id="panel-equipos">
+            <div id="equipos-container">
+              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 60px 20px; color: var(--text-secondary);">
+                <div style="font-size: 52px; opacity: 0.25; margin-bottom: 16px;">⚙️</div>
+                <div style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Seleccione una Organización y un Sitio</div>
+                <div style="font-size: 13px; max-width: 360px; text-align: center; line-height: 1.7;">
+                  Usa los filtros de arriba para elegir el cliente y su sitio.<br>
+                  Luego verás los equipos del tipo seleccionado en la pestaña activa.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Panel VLANs -->
+          <div id="panel-vlans">
+            <div class="vlan-table-wrap">
+              <div class="vlan-table-header">
+                <div style="font-size:15px; font-weight:700;">🏷️ Catálogo de VLANs</div>
+                <button class="btn btn-primary btn-sm" id="btn-nueva-vlan">+ Nueva VLAN</button>
+              </div>
+              <div id="vlans-list">
+                <div style="padding:40px; text-align:center; color:var(--text-secondary);">Cargando VLANs...</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal de Configuración de Puerto (expandido) -->
+  <div class="modal-overlay" id="modal-port-config">
+    <div class="modal-box" style="width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="port-modal-title">Configurar Puerto</h3>
+      </div>
+
+      <!-- Sección 1: Capacidad -->
+      <div id="modal-section-capacidad">
+        <div class="modal-section-title">⚡ Capacidad / Velocidad</div>
+        <div class="form-group" style="margin-bottom:4px;">
+          <select id="port-capacidad" class="form-control">
+            <option value="offline">Desconectado</option>
+            <option value="100M">100M</option>
+            <option value="1G">1G (1000M)</option>
+            <option value="2.5G">2.5G</option>
+            <option value="10G">10G</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Sección 2: Uso -->
+      <div id="modal-section-uso">
+        <div class="modal-section-title">🔀 Rol de Conexión</div>
+        <div class="form-group" style="margin-bottom:4px;">
+          <select id="port-uso" class="form-control">
+            <option value="ninguno">Ninguno</option>
+            <option value="usuario">Lado Usuario (Acceso)</option>
+            <option value="cascada">Cascada (Uplink/Trunk)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Sección 3: Destino del cable (Equipos normales) -->
+      <div id="modal-section-destino">
+        <div class="modal-section-title">🔌 Destino del Cable</div>
+        <div class="conn-options" id="conn-options">
+          <label class="conn-opt selected" data-val="libre">
+            <input type="radio" name="conn_tipo" value="libre" checked>
+            <span class="conn-icon">⬜</span>
+            Libre
+          </label>
+          <label class="conn-opt" data-val="equipo_red">
+            <input type="radio" name="conn_tipo" value="equipo_red">
+            <span class="conn-icon">🔗</span>
+            Equipo de Red
+          </label>
+          <label class="conn-opt" data-val="dispositivo_final">
+            <input type="radio" name="conn_tipo" value="dispositivo_final">
+            <span class="conn-icon">🖥️</span>
+            Dispositivo Final
+          </label>
+          <label class="conn-opt" data-val="patch_panel" title="Disponible en próxima etapa" style="opacity:0.5; cursor:not-allowed; display:none;">
+            <input type="radio" name="conn_tipo" value="patch_panel" disabled>
+            <span class="conn-icon">🔲</span>
+            Patch Panel
+          </label>
+        </div>
+        <div id="conn-label-wrap" style="margin-top:8px; display:none;">
+          <input type="text" id="port-conn-label" class="form-control" placeholder="Ej: SW-Core-01, Server Dell R740…" style="margin-top:0;">
+        </div>
+      </div>
+
+      <!-- Sección: Conexiones de Patch Panel (Exclusivo para PP) -->
+      <div id="modal-section-patch-panel" style="display:none;">
+        <div class="modal-section-title">🔌 Conexiones del Puerto (Patch Panel)</div>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="color:var(--text-primary);"><span style="color:#22c55e;">Frente</span> (Hacia Equipos de Red)</label>
+          <input type="text" id="pp-conn-front" class="form-control" placeholder="Ej: Switch 1 - Puerto 24">
+          <small style="color:var(--text-muted);font-size:11px;">A dónde se conecta con patch cord en el rack.</small>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="color:var(--text-primary);"><span style="color:#3b82f6;">Atrás</span> (Llegada de Cable / Nodos)</label>
+          <input type="text" id="pp-conn-back" class="form-control" placeholder="Ej: Cámara Pasillo, NVR, PC Recepción">
+          <small style="color:var(--text-muted);font-size:11px;">El destino físico a donde llega el cable estructurado.</small>
+        </div>
+      </div>
+
+      <!-- Sección 4: VLANs -->
+      <div id="modal-section-vlans">
+        <div class="modal-section-title">🏷️ Configuración de VLANs</div>
+        <div class="vlan-mode-opts">
+        <div class="vlan-mode-btn selected" data-mode="ninguno">∅ Ninguno</div>
+        <div class="vlan-mode-btn" data-mode="access">Access</div>
+        <div class="vlan-mode-btn" data-mode="trunk">Trunk</div>
+      </div>
+
+      <div id="vlan-access-wrap" style="margin-top:10px; display:none;">
+        <label style="font-size:12px;color:var(--text-secondary);font-weight:600;margin-bottom:5px;display:block;">VLAN de Acceso</label>
+        <select id="port-vlan-access" class="form-control"></select>
+      </div>
+
+      <div id="vlan-trunk-wrap" style="margin-top:10px; display:none;">
+        <label style="font-size:12px;color:var(--text-secondary);font-weight:600;margin-bottom:5px;display:block;">VLANs Permitidas en Trunk</label>
+        <div class="vlan-trunk-grid" id="vlan-trunk-grid"></div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">
+          Si necesitas una VLAN que no aparece, créala primero en la tab 🏷️ VLANs.
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+        <button type="button" class="btn btn-ghost" id="btn-close-port-modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-save-port">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal VLAN (crear/editar) -->
+  <div class="modal-overlay" id="modal-vlan">
+    <div class="modal-box" style="width: 360px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="vlan-modal-title">Nueva VLAN</h3>
+      </div>
+      <input type="hidden" id="vlan-edit-id">
+      <div class="form-group">
+        <label>ID de VLAN (número)</label>
+        <input type="number" id="vlan-id-input" class="form-control" placeholder="Ej: 10" min="1" max="4094">
+      </div>
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="vlan-nombre-input" class="form-control" placeholder="Ej: Datos, VoIP, Gestión">
+      </div>
+      <div class="form-group">
+        <label>Color (para badges)</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="color" id="vlan-color-input" value="#3b82f6" style="width:40px;height:36px;border-radius:6px;border:1px solid var(--border);cursor:pointer;padding:2px;">
+          <div class="vlan-color-presets" style="display:flex; gap:6px;">
+            <div class="color-preset" data-color="#3b82f6" style="width:24px;height:24px;border-radius:4px;background:#3b82f6;cursor:pointer;" title="Azul"></div>
+            <div class="color-preset" data-color="#22c55e" style="width:24px;height:24px;border-radius:4px;background:#22c55e;cursor:pointer;" title="Verde"></div>
+            <div class="color-preset" data-color="#f59e0b" style="width:24px;height:24px;border-radius:4px;background:#f59e0b;cursor:pointer;" title="Amarillo"></div>
+            <div class="color-preset" data-color="#ef4444" style="width:24px;height:24px;border-radius:4px;background:#ef4444;cursor:pointer;" title="Rojo"></div>
+            <div class="color-preset" data-color="#7c3aed" style="width:24px;height:24px;border-radius:4px;background:#7c3aed;cursor:pointer;" title="Violeta"></div>
+            <div class="color-preset" data-color="#ea580c" style="width:24px;height:24px;border-radius:4px;background:#ea580c;cursor:pointer;" title="Naranja"></div>
+            <div class="color-preset" data-color="#0891b2" style="width:24px;height:24px;border-radius:4px;background:#0891b2;cursor:pointer;" title="Cyan"></div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notas (opcional)</label>
+        <textarea id="vlan-notas-input" class="form-control" rows="2" placeholder="Descripción o uso de esta VLAN…"></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px;">
+        <button type="button" class="btn btn-ghost" id="btn-close-vlan-modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-save-vlan">Guardar VLAN</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+  <script src="js/auth.js" defer></script>
+  <script src="js/configuracion.js" defer></script>
+</body>
+</html>
+
